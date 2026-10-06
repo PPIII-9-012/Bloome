@@ -1,0 +1,272 @@
+{
+  "source": "https://www.figma.com/design/I23Px5r3BAfCUpLiHan7ro/Bloome?node-id=0-1",
+  "page": "SISTEMA",
+  "total": 44,
+  "downloaded": 44,
+  "frames": [
+    {
+      "id": "3:2",
+      "name": "Login",
+      "file": "01-login.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "6:137",
+      "name": "Top Menu",
+      "file": "02-top-menu.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "6:30",
+      "name": "Side Menu",
+      "file": "03-side-menu.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "3:112",
+      "name": "Caja",
+      "file": "04-caja.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "8:953",
+      "name": "Clientes",
+      "file": "05-clientes.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "13:2838",
+      "name": "Configuracion - Empresa - Empleados ",
+      "file": "06-configuracion-empresa-empleados.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "15:503",
+      "name": "Configuracion - Ventas - Servicios ",
+      "file": "07-configuracion-ventas-servicios.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "18:735",
+      "name": "Configuracion - Agenda - Feriado ",
+      "file": "08-configuracion-agenda-feriado.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "15:430",
+      "name": "Configuracion - Ventas - Categoria",
+      "file": "09-configuracion-ventas-categoria.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "14:198",
+      "name": "Configuracion - Empresa - Empleados - Perfil ",
+      "file": "10-configuracion-empresa-empleados-perfil.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "18:590",
+      "name": "Configuracion - Agenda - Horario ",
+      "file": "11-configuracion-agenda-horario.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "8:1073",
+      "name": "Clientes - Ficha del Cliente",
+      "file": "12-clientes-ficha-del-cliente.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "9:1800",
+      "name": "Clientes - Ficha del Cliente - Nueva Venta",
+      "file": "13-clientes-ficha-del-cliente-nueva-venta.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "6:692",
+      "name": "Agenda",
+      "file": "14-agenda.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "6:425",
+      "name": " Caja - Buscar Venta",
+      "file": "15-caja-buscar-venta.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "6:259",
+      "name": "Caja - Resumen",
+      "file": "16-caja-resumen.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "6:336",
+      "name": "Caja - Cierre ",
+      "file": "17-caja-cierre.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "6:75",
+      "name": "Main",
+      "file": "18-main.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "3:73",
+      "name": "Recuperar Contraseña",
+      "file": "19-recuperar-contrasena.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "6:230",
+      "name": "User Menu",
+      "file": "20-user-menu.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "6:493",
+      "name": "Caja - Buscar Venta - Menú",
+      "file": "21-caja-buscar-venta-menu.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "6:508",
+      "name": "Caja - Movimientos de Caja",
+      "file": "22-caja-movimientos-de-caja.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "7:778",
+      "name": "Agenda - Nueva Cita",
+      "file": "23-agenda-nueva-cita.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "13:2625",
+      "name": "Configuración - Empresa -  Centro",
+      "file": "24-configuracion-empresa-centro.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "7:871",
+      "name": "Agenda - Nueva Venta",
+      "file": "25-agenda-nueva-venta.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "7:820",
+      "name": "Agenda - Nueva Cita - Agregar Cliente",
+      "file": "26-agenda-nueva-cita-agregar-cliente.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "13:2899",
+      "name": "Configuracion - Empresa - Empleados - Nuevo",
+      "file": "27-configuracion-empresa-empleados-nuevo.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "15:482",
+      "name": "Ventas - Categoria - Nuevo",
+      "file": "28-ventas-categoria-nuevo.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "18:789",
+      "name": "Configuracion - Agenda - Feriado - Nuevo",
+      "file": "29-configuracion-agenda-feriado-nuevo.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "18:563",
+      "name": "Configuracion - Ventas - Servicios - Nuevo",
+      "file": "30-configuracion-ventas-servicios-nuevo.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "14:415",
+      "name": "Configuracion - Empresa - Empleados - Perfil  - Editar",
+      "file": "31-configuracion-empresa-empleados-perfil-editar.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "18:953",
+      "name": "Configuracion - Empresa - Empleados - Perfil  - Vacaciones",
+      "file": "32-configuracion-empresa-empleados-perfil-vacaciones.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "18:978",
+      "name": "User Menu - Perfil - Vacaciones",
+      "file": "33-user-menu-perfil-vacaciones.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "18:803",
+      "name": "User Menu - Perfil",
+      "file": "34-user-menu-perfil.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "18:921",
+      "name": "User Menu - Perfil - Editar",
+      "file": "35-user-menu-perfil-editar.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "9:1495",
+      "name": "Clientes -  Ficha del Cliente - Editar",
+      "file": "36-clientes-ficha-del-cliente-editar.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "8:1048",
+      "name": "Clientes - Nuevo",
+      "file": "37-clientes-nuevo.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "7:848",
+      "name": "Agenda - Nueva Cita - Agregar Servicio",
+      "file": "38-agenda-nueva-cita-agregar-servicio.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "9:1465",
+      "name": "Clientes - Ficha del Cliente - SMS",
+      "file": "39-clientes-ficha-del-cliente-sms.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "9:1483",
+      "name": "Clientes - Ficha del Cliente - Emai",
+      "file": "40-clientes-ficha-del-cliente-emai.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "10:2438",
+      "name": "Clientes - Ficha del Cliente - Nueva Venta - Nuevo Servicio",
+      "file": "41-clientes-ficha-del-cliente-nueva-venta-nuevo-servicio.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "11:2455",
+      "name": "Estadisticas",
+      "file": "42-estadisticas.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "13:2562",
+      "name": "Configuración",
+      "file": "43-configuracion.png",
+      "status": "downloaded"
+    },
+    {
+      "id": "13:2756",
+      "name": "Configuración - Empresa - Diseño",
+      "file": "44-configuracion-empresa-diseno.png",
+      "status": "downloaded"
+    }
+  ]
+}

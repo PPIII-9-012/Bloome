@@ -1,0 +1,1 @@
+<section class="panel message-panel"><span class="eyebrow">BLOOME</span><h1><?= e($title) ?></h1><p class="muted"><?= e($message) ?></p><a class="button" href="<?= e(url(empty($user)?'login':'dashboard')) ?>">Volver al inicio</a></section>
