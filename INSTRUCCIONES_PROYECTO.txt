@@ -1,0 +1,256 @@
+================================================================================
+                       BLOOME - GESTION DE TU CENTRO
+        INSTRUCCIONES DE USO, TECNOLOGIAS, ESTADO Y REFERENCIAS FIGMA
+================================================================================
+
+URL local: http://127.0.0.1:8000
+
+================================================================================
+1. QUE ES BLOOME Y QUE HACE (DESCRIPCION FUNCIONAL)
+================================================================================
+Bloome es una plataforma web integral de gestion operativa disenada exclusivamente 
+para centros de estetica, belleza y bienestar ("Estetica Integral"). 
+
+Su objetivo principal es unificar el flujo de trabajo diario de un centro:
+- Control y agendamiento de turnos/citas de clientes.
+- Ficha e historial de clientes con preferencias y datos de contacto.
+- Administracion de profesionales, horarios de trabajo, vacaciones y ausencias.
+- Registro de ventas de servicios/productos, senas y metodos de pago.
+- Control de caja diaria (apertura, movimientos, extracciones, arqueo y cierre).
+- Metricas de gestion comercial y rendimiento del centro.
+
+ESTADO OPERATIVO ACTUAL DEL SISTEMA (ETAPA 1 - PILOTO VERIFICADO):
+Actualmente el sistema cuenta con el nucleo operativo y de seguridad funcionando 
+con datos reales sobre MySQL:
+
+a) Modulo de Seguridad y Autenticacion:
+   - Login seguro con validacion de correo y contrasena encriptada (bcrypt / password_verify).
+   - Bloqueo persistente contra ataques de fuerza bruta en MySQL (10 intentos fallidos = 15 min de bloqueo).
+   - Regeneracion de ID de sesion al ingresar para prevenir fijacion de sesion.
+   - Proteccion anti-CSRF estricta en todas las operaciones POST con token criptografico de 64 bytes.
+   - Escape sistematico de HTML para blindaje contra ataques XSS.
+   - Sistema de roles:
+     * 'admin': Administracion total del sistema y clientes.
+     * 'reception': Gestion operativa de citas y clientes.
+     * 'professional': Perfil de solo lectura (consulta citas y clientes, denegado para editar).
+   - Cierre de sesion seguro con invalidacion de sesion y destruccion de cookies.
+
+b) Dashboard / Inicio ("Tu centro, en un vistazo"):
+   - Tarjetas metricas en tiempo real: Clientes registrados, Citas de hoy, Servicios activos.
+   - Resumen interactivo de la agenda del dia actual: horario, cliente, servicio, profesional y estado.
+
+c) Modulo de Clientes:
+   - Listado paginado (12 registros por pagina).
+   - Buscador rapido multicriterio en tiempo real por nombre, apellido, email o telefono.
+   - Formulario de alta ("Nuevo Cliente") y edicion ("Editar Cliente") con validacion estricta:
+     * Nombre y apellido obligatorios.
+     * Formato de email y telefono.
+     * Control estricto de fecha de nacimiento (anos bisiestos y fechas inexistentes).
+     * Limite de caracteres para notas u observaciones.
+   - Mensajes flash de confirmacion y feedback visual accesible.
+
+d) Modulo de Agenda (Consulta de Citas):
+   - Selector de fecha para consultar la jornada deseada o boton directo "Hoy".
+   - Normalizacion de fechas invalidas para evitar excepciones.
+   - Visualizacion de horarios, profesional a cargo, cliente y estado (confirmada, pendiente, cancelada, completada).
+
+
+================================================================================
+2. QUE TECNOLOGIAS TIENE (STACK TECNOLOGICO)
+================================================================================
+- Backend / Lenguaje: PHP 8.4 con tipado estricto (declare(strict_types=1);). 
+  Arquitectura ligera y modular sin dependencias pesadas de Composer para un 
+  rendimiento veloz y maxima portabilidad.
+- Base de Datos: MySQL 8.0 / 8.4 con motor InnoDB, integridad referencial 
+  mediante llaves foraneas (FOREIGN KEY), restricciones CHECK y codificacion 
+  utf8mb4 (soporte completo de caracteres especiales y tildes).
+- Conexion de Base de Datos: PHP Data Objects (PDO) con consultas preparadas 
+  (Prepared Statements) parametrizadas en el 100% de las operaciones (blindaje anti-inyeccion SQL).
+- Frontend: HTML5 semantico, CSS3 moderno con variables CSS personalizadas 
+  (diseno responsivo para escritorio, tablet y movil), tipografia Plus Jakarta Sans 
+  y paleta corporativa fiel a Figma.
+- Entorno de Contenedores: Dockerfile y compose.yaml listos para despliegue 
+  reproducible en servidores o computadoras con Docker Desktop.
+- Automatizacion Local: Script en PowerShell (bin/start-local.ps1) para 
+  arranque transparente de base de datos aislada y servidor en Windows.
+- Dependencias Locales Embebidas: PHP 8.4 y almacenamiento MySQL aislados en la 
+  carpeta interna .tools/ (no altera la instalacion global del sistema).
+
+
+================================================================================
+3. COMO SE LEVANTA EL PROYECTO (GUIA PASO A PASO)
+================================================================================
+
+METODO A: EN ESTA PC (ENTORNO LOCAL YA PREPARADO)
+El entorno cuenta con binarios de PHP y almacenamiento de MySQL configurados 
+especificamente para este proyecto.
+
+1. Abrir PowerShell en la carpeta raiz del proyecto:
+
+2. Ejecutar el script de arranque:
+   powershell -File bin/start-local.ps1
+
+   Este comando:
+   - Verifica si MySQL (puerto 3308) y el servidor PHP estan activos.
+   - Si no estan corriendo, levanta mysqld.exe en segundo plano con el directorio 
+     aislado .tools/mysql-data en el puerto 3308.
+   - Levanta el servidor web embebido de PHP en http://127.0.0.1:8000.
+
+3. Abrir la aplicacion en el navegador web:
+   http://127.0.0.1:8000
+
+4. Credenciales de acceso (configuradas en el archivo .env):
+   - Correo electronico: admin@bloome.local
+   - Contrasena: F5034905E8CF2FFD79F6C8D7
+
+5. Como verificar que todo funciona correctamente:
+   Ejecutar las suites de test desde la consola:
+   .\.tools\php\php.exe tests/run.php
+   .\.tools\php\php.exe tests/http.php
+   Ambas deben mostrar "33 pruebas aprobadas".
+
+6. Como detener el entorno local:
+   Si se desea detener los procesos en segundo plano, ejecutar en PowerShell:
+   Stop-Process -Id (Get-Content .tools/php.pid) -Force -ErrorAction SilentlyContinue
+   Stop-Process -Id (Get-Content .tools/mysql.pid) -Force -ErrorAction SilentlyContinue
+
+
+METODO B: EN OTRA PC MEDIANTE DOCKER DESKTOP
+1. Asegurarse de tener Docker Desktop instalado y en ejecucion.
+2. Copiar el archivo de variables de entorno:
+   Copy-Item .env.example .env
+3. Configurar en .env las contrasenas deseadas para MySQL y el administrador.
+4. Construir y levantar los contenedores:
+   docker compose up -d --build
+5. Inicializar la base de datos y usuario administrador:
+   docker compose exec web php bin/install.php
+6. (Opcional) Cargar datos ficticios de demostracion:
+   docker compose exec web php bin/seed-demo.php --confirm
+7. Abrir en el navegador:
+   http://localhost:8000
+
+
+METODO C: EN OTRA PC SIN DOCKER (PHP + MYSQL NATIVOS)
+Requisitos: PHP 8.4 con extension pdo_mysql habilitada y MySQL 8.0/8.4.
+1. Crear una base de datos llamada 'bloome' con charset utf8mb4.
+2. Configurar el archivo .env con DB_HOST=127.0.0.1, DB_PORT=3306 y las credenciales.
+3. Ejecutar la instalacion inicial:
+   php bin/install.php
+4. Opcional: cargar datos de prueba:
+   php bin/seed-demo.php --confirm
+5. Iniciar el servidor web:
+   php -S 127.0.0.1:8000 -t public public/router.php
+6. Acceder a http://127.0.0.1:8000.
+
+
+================================================================================
+4. REFERENCIAS FIGMA: PANTALLAS ACTUALIZADAS VS PENDIENTES
+================================================================================
+Fuente de referencia: [Draft Bloome - Pagina SISTEMA (44 marcos en total)]
+Carpeta local de capturas: referencias/figma/SISTEMA/
+
+--------------------------------------------------------------------------------
+4.1. PANTALLAS Y COMPONENTES YA ACTUALIZADOS AL DISENO (IMPLEMENTADOS):
+--------------------------------------------------------------------------------
+Las siguientes pantallas y componentes ya fueron adaptados fielmente al diseno 
+de Figma, manteniendo coherencia estetica, paleta corporativa y tipografia:
+
+1. [01-login.png] - Pantalla de Acceso (Login):
+   - Diseno dividido 50/50: izquierda con la fotografia arquitectonica de la 
+     fachada de Bloome y marquesina turquesa; derecha con panel blanco puro.
+   - Logotipo oficial centrado "BLOOME ESTETICA INTEGRAL".
+   - Inputs con iconos lineales correspondientes (usuario para correo, candado para contrasena).
+   - Boton principal en naranja corporativo (#F27A38) con etiqueta "ACCEDER".
+   - Enlace inferior "¿Has olvidado tu contrasena?".
+
+2. [02-top-menu.png] - Barra de Navegacion Superior (Topbar):
+   - Barra horizontal completa en blanco (#FFFFFF) con linea divisoria sutil.
+   - Selector de centro/sucursal "AIXA" con circulo verde azulado botanico y flecha.
+   - Separador vertical y logotipo oficial "BLOOME ESTETICA INTEGRAL".
+   - Buscador global redondeado (pill input) con lupa "Buscar cliente".
+   - Perfil de usuario activo con avatar y boton "Salir ↗".
+
+3. [03-side-menu.png] - Barra Lateral de Navegacion (Sidebar):
+   - Fondo gris suave (#F3F4F6) con separador derecho (#E5E7EB).
+   - Iconos vectoriales limpios y minimalistas: Agenda, Caja, Clientes, Estadisticas y Configuracion.
+   - Resaltado de seccion activa en verde azulado oscuro (#0E3D3E) con texto blanco.
+   - Indicador sutil "Prox." para modales en construccion.
+   - Grabado botanico inferior con el arco caracteristico de Bloome (sidebar-leaf.png).
+
+4. [05-clientes.png] - Listado Principal de Clientes:
+   - Barra de acciones superior en verde azulado oscuro (#0E3D3E) con botones:
+     "+ Nuevo Cliente", "Exportar" e "Importar".
+   - Buscador redondeado con icono de lupa y boton "Buscar".
+   - Tabla con encabezado verde azulado oscuro (#0E3D3E) y texto blanco:
+     "Codigo" | "Nombre" | "Apellido" | "Telefono" | "Ingresos" | "☰".
+   - Filas limpias con identificadores #0001, nombres, datos de contacto y enlace contextual "Editar ↗".
+   - Paginacion integrada en la base de la tabla.
+
+5. [14-agenda.png] - Consulta de Agenda y Turnos:
+   - Barra de acciones superior verde azulada (#0E3D3E):
+     "Nueva Cita", "Nueva Venta", "Imprimir" y "Exportar".
+   - Tarjetas de balance metrico:
+     * "Ingresos Realizados" en verde brillante (#74C236).
+     * "Ingresos Pendientes" en naranja vibrante (#F27A38).
+   - Tarjeta de filtros con selectores redondeados: "Categorias ▼", "Empleados ▼", "Estados ▼".
+   - Selector de fecha integrado con acceso rapido "Hoy".
+   - Control segmentado de visualizacion: [ Dia | Semana | Mes ].
+   - Tabla de turnos con horario, cliente, servicio, profesional y badges de estado.
+
+6. [18-main.png] - Dashboard / Inicio:
+   - Cabecera con saludo y enlace rapido a la agenda.
+   - Tarjetas KPI ("Clientes registrados", "Citas de hoy", "Servicios activos").
+   - Vista de agenda del dia actual montada sobre la estructura de tablas Figma.
+
+7. [37-clientes-nuevo.png] y [10-configuracion-empresa-empleados-perfil.png]:
+   - Formularios estilizados con inputs redondeados de fondo blanco y borde gris.
+   - Boton primario de accion en naranja corporativo (#F27A38) "GUARDAR CLIENTE" / "GUARDAR CAMBIOS".
+   - Avisos de error y mensajes de exito accesibles.
+
+
+--------------------------------------------------------------------------------
+4.2. PANTALLAS Y MODULOS PENDIENTES DE ACTUALIZAR / DESARROLLAR (ROADMAP):
+--------------------------------------------------------------------------------
+Las siguientes pantallas forman parte de las etapas subsiguientes del sistema:
+
+A) Modulo de Caja y Ventas:
+   - [04-caja.png]: Vista principal de caja con acciones de apertura, abonos y extracciones.
+   - [15-caja-buscar-venta.png]: Buscador y detalle de tickets y ventas.
+   - [16-caja-resumen.png]: Resumen de movimientos agrupados por medio de pago.
+   - [17-caja-cierre.png]: Modal de arqueo y cierre diario de caja.
+   - [21-caja-buscar-venta-menu.png]: Menu contextual sobre venta (ver/anular).
+   - [22-caja-movimientos-de-caja.png]: Listado de entradas y salidas de efectivo.
+
+B) Ficha Integral del Cliente:
+   - [12-clientes-ficha-del-cliente.png]: Ficha de cliente con historial de visitas, senas y saldo.
+   - [13-clientes-ficha-del-cliente-nueva-venta.png]: Registro de venta directa desde la ficha.
+   - [36-clientes-ficha-del-cliente-editar.png]: Edicion rapida dentro de la ficha.
+   - [39-clientes-ficha-del-cliente-sms.png]: Disparador y log de envio de SMS.
+   - [40-clientes-ficha-del-cliente-emai.png]: Disparador y log de envio de correos.
+   - [41-clientes-ficha-del-cliente-nueva-venta-nuevo-servicio.png]: Detalle multi-servicio.
+
+C) Agenda Interactiva (Creacion y Modificacion de Citas):
+   - [23-agenda-nueva-cita.png]: Modal para agendar una cita con fecha, hora y duracion.
+   - [25-agenda-nueva-venta.png]: Vinculacion de venta directa al completar turno.
+   - [26-agenda-nueva-cita-agregar-cliente.png]: Busqueda/alta rapida de cliente desde cita.
+   - [38-agenda-nueva-cita-agregar-servicio.png]: Seleccion de uno o multiples servicios.
+
+D) Configuracion de Empleados, Horarios y Empresa:
+   - [06-configuracion-empresa-empleados.png]: Listado de empleados y roles del centro.
+   - [27-configuracion-empresa-empleados-nuevo.png]: Formulario de alta de profesional.
+   - [31-configuracion-empresa-empleados-perfil-editar.png]: Edicion de perfil de empleado.
+   - [32-configuracion-empresa-empleados-perfil-vacaciones.png]: Gestion de vacaciones.
+   - [08-configuracion-agenda-feriado.png] y [29-configuracion-agenda-feriado-nuevo.png]: Feriados.
+   - [11-configuracion-agenda-horario.png]: Grilla de horarios de atencion semanal.
+   - [24-configuracion-empresa-centro.png]: Datos de la empresa / razon social.
+   - [44-configuracion-empresa-diseno.png]: Logotipo del centro y colores de marca.
+
+E) Catalogo de Servicios y Categorias:
+   - [07-configuracion-ventas-servicios.png] y [30-configuracion-ventas-servicios-nuevo.png]: Catalogo.
+   - [09-configuracion-ventas-categoria.png] y [28-ventas-categoria-nuevo.png]: Categorias.
+
+F) Estadisticas y Perfil Propio:
+   - [42-estadisticas.png]: Graficos de ingresos por servicio, categoria y horas atendidas.
+   - [19-recuperar-contrasena.png]: Flujo de restablecimiento de clave por correo.
+   - [20-user-menu.png], [34-user-menu-perfil.png], [35-user-menu-perfil-editar.png]: Menu usuario.
+================================================================================
