@@ -33,9 +33,35 @@
                 <button class="figma-btn-acceder" type="submit">ACCEDER</button>
 
                 <div class="login-forgot-wrap">
-                    <a href="#" class="login-forgot-link" onclick="alert('Contactá al administrador de tu centro para gestionar el restablecimiento de tu contraseña.'); return false;">¿Has olvidado tu contraseña?</a>
+                    <a href="<?= e(url('forgot-password')) ?>" class="login-forgot-link">
+                        ¿Has olvidado tu contraseña?
+                    </a>
                 </div>
             </form>
         </div>
     </div>
 </div>
+/*
+!!! Agregar a la base de datos .
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
+    user_id BIGINT UNSIGNED NOT NULL,
+    token_hash CHAR(64) NOT NULL UNIQUE,
+
+    expires_at TIMESTAMP NOT NULL,
+    used_at TIMESTAMP NULL,
+
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT password_reset_tokens_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+
+    INDEX password_reset_tokens_user (user_id),
+    INDEX password_reset_tokens_expires (expires_at)
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;
+*/
