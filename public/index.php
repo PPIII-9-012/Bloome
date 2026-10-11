@@ -54,8 +54,11 @@ try {
         setcookie(session_name(), '', ['expires' => time() - 3600, 'path' => '/', 'httponly' => true, 'secure' => getenv('APP_SECURE_COOKIE') === '1', 'samesite' => 'Lax']);
         redirect('login');
     }
-    if (in_array($page, ['employees','employee','employee-new','employee-edit','profile','profile-edit'], true)) {
+    if (in_array($page, ['employees','employee','employee-new','employee-edit','profile','profile-edit','employee-vacation-new','employee-vacation-delete','employee-schedule-save'], true)) {
         require ROOT . '/app/employee-routes.php';
+    }
+    if (in_array($page, ['holidays','holiday-new','holiday-delete','schedule'], true)) {
+        require ROOT . '/app/schedule-routes.php';
     }
     if ($page === 'dashboard' && $method === 'GET') {
         $today = date('Y-m-d');
