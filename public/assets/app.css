@@ -999,3 +999,44 @@ button {
         grid-template-columns: 1fr;
     }
 }
+
+/* Employees and self-service profile: Figma 06, 10, 27, 31, 34, 35. */
+.employee-heading { margin-bottom: 22px; }
+.employee-heading h1 { margin: 0 0 6px; font-size: 24px; }
+.employee-heading p, .employee-form small { color: var(--text-muted); }
+.employee-toolbar { background: var(--teal-dark); border-radius: 6px; padding: 14px 20px; margin-bottom: 18px; }
+.employee-toolbar a { color: white; font-weight: 600; }
+.employee-filters { display: flex; gap: 14px; align-items: end; margin-bottom: 18px; flex-wrap: wrap; }
+.employee-filters label { display: grid; gap: 6px; flex: 1; min-width: 160px; }
+.employee-filters input, .employee-filters select, .employee-form select { padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; background: white; color: var(--text-primary); font: inherit; width: 100%; }
+.employee-table-wrap { overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px; }
+.employee-pagination { display: flex; gap: 20px; justify-content: end; padding: 18px 0; flex-wrap: wrap; }
+.employee-swatch { vertical-align: middle; flex-shrink: 0; }
+.employee-profile { display: grid; grid-template-columns: 200px 1fr; gap: 24px; }
+.employee-identity { text-align: center; overflow-wrap: anywhere; }
+.employee-avatar { width: 90px; height: 90px; border-radius: 50%; background: #e5e7eb; display: grid; place-items: center; font-size: 32px; margin: 0 auto 16px; }
+.employee-profile h2 { font-size: 18px; }
+.employee-profile dt { color: var(--text-muted); margin-top: 22px; }
+.employee-profile dd { margin: 6px 0 24px; overflow-wrap: anywhere; }
+.employee-form input[type="color"] { min-height: 46px; padding: 5px; }
+@media(max-width: 650px) { .employee-profile { grid-template-columns: 1fr; } .employee-filters { align-items: stretch; flex-direction: column; } }
+
+/* Keep employee forms and account navigation usable on narrow screens. */
+.employee-form .field, .employee-profile > * { min-width: 0; }
+.employee-form .field input { min-width: 0; width: 100%; }
+@media (max-width: 760px) {
+    .topbar-search-form { display: none; }
+    .topbar-right { gap: 10px; min-width: 0; }
+    .topbar-user { min-width: 0; }
+    .topbar-user a { max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+@media (max-width: 650px) {
+    .employee-form .form-grid { grid-template-columns: minmax(0, 1fr); }
+    .employee-form, .employee-profile .form-card { padding: 20px; }
+    .employee-form .form-actions { flex-wrap: wrap; }
+    .figma-topbar { padding: 0 12px; gap: 12px; }
+    .topbar-left .branch-pill, .topbar-divider { display: none; }
+    .topbar-logo-img { height: 20px; }
+    .topbar-user-icon { display: none; }
+    .figma-footer { flex-wrap: wrap; gap: 8px; padding: 16px 20px; }
+}

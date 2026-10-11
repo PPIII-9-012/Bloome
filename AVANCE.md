@@ -45,3 +45,9 @@ En otra PC seguir README.md. Los ejecutables y la base local en `.tools/` no for
 5. Ventas, pagos y caja siguiendo el roadmap y sus reglas de conciliación.
 
 La agenda actual tiene una sola relación de servicio por cita y usa usuarios como empleados. Son simplificaciones de esta primera entrega y requieren migraciones antes de soportar los flujos completos del diseño.
+
+## Incremento de empleados y perfil (11/10/2026)
+
+Implementado en `feature/09-empleados-perfil`: listado con búsqueda/paginación, alta, edición, rol, color en agenda, activación/desactivación y perfil propio limitado. Permisos PHP, CSRF, consultas preparadas y transacciones; bloqueo del último administrador con prueba concurrente. Migración 009 aplicada en la base local, sin cambiar las relaciones de citas ni eliminar historial.
+
+Detalle de archivos, migración, contrato con la rama de base de datos y aceptación pendiente: [docs/EMPLEADOS.md](docs/EMPLEADOS.md). La dependencia #3 sigue abierta y propone cambiar la FK de citas; #4 sigue abierta. Trello no pudo consultarse (401), y el navegador automatizado está bloqueado por `setup refresh had errors`.

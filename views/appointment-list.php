@@ -26,7 +26,7 @@
                     <strong style="display: block; font-size: 14px; color: var(--text-primary);"><?= e($appointment['first_name'] . ' ' . $appointment['last_name']) ?></strong>
                     <small style="color: var(--text-muted); font-size: 12px;"><?= e($appointment['service_name']) ?></small>
                 </td>
-                <td style="color: var(--text-secondary);"><?= e($appointment['employee_name']) ?></td>
+                <td style="color: var(--text-secondary);"><?= employeeSwatch($appointment['appointment_color'] ?? null) ?> <?= e($appointment['employee_name']) ?></td>
                 <td style="text-align: right;">
                     <span class="badge <?= e($appointment['status']) ?>"><?= e($statuses[$appointment['status']]) ?></span>
                 </td>
