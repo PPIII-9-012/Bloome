@@ -101,7 +101,7 @@ especificamente para este proyecto.
 
 4. Credenciales de acceso (configuradas en el archivo .env):
    - Correo electronico: admin@bloome.local
-   - Contrasena: F5034905E8CF2FFD79F6C8D7
+   - Contrasena: consultar ADMIN_PASSWORD en .env (archivo privado, no versionado).
 
 5. Como verificar que todo funciona correctamente:
    Ejecutar las suites de test desde la consola:
