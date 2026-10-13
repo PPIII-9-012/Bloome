@@ -41,9 +41,7 @@ Los triggers `appointments_active_employee_insert` y `appointments_active_employ
 
 ## Contrato para integrar #3 y #4
 
-En esta versión **`appointments.employee_id` sigue referenciando `users.id`**. No confundirlo con `employees.id`; el enlace es `employees.user_id`. La agenda conserva servicio único y consulta el color mediante ese enlace. El CRUD de nuevas citas sigue siendo una tarea separada; la restricción de inactividad ya se aplica en MySQL.
-
-Antes de integrar la FK propuesta por #3, preparar una migración de IDs de citas mediante `employees.user_id`, adaptar agenda/dashboard/seed/tests y los dos triggers, e integrar servicios múltiples. Este módulo detecta una FK distinta y detiene su migrador con un error explícito para no interpretar silenciosamente IDs incompatibles. No basta con ejecutar el `schema.sql` de la rama #3 sobre la base existente.
+El modelo integrado usa **`appointments.employee_id` → `employees.id`** y servicios múltiples en `appointment_services`. Perfil, horarios y vacaciones conservan IDs de usuario. Para actualizar una base anterior, seguir [el procedimiento de migración](MODELO-DATOS.md); no basta con ejecutar `schema.sql` ni el migrador de empleados.
 
 Al integrar #4, conectar `canManageEmployees` y `employee_audit` con su política y auditoría compartidas, manteniendo las pruebas de autorización.
 

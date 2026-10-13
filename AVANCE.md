@@ -59,3 +59,13 @@ Terminal y navegador funcionando. Revisión visual de empleados/perfil realizada
 ## Revisión del avance #10 — 12/10/2026
 
 Corregidos formularios bloqueados por CSP, redirecciones del perfil, guardados parciales y validación de disponibilidad. Pruebas de horarios trasladadas a una base temporal aislada. Total verificado: 121 pruebas (15 + 18 + 47 + 41). Detalles y pendientes de integración con turnos en [docs/HORARIOS.md](docs/HORARIOS.md). Sin nuevas migraciones; cambios locales en `feature/10-horarios-vacaciones-feriados`.
+
+## 13 de octubre de 2026 — integración del modelo
+
+- Publicados PR #35 (empleados, base develop) y #36 (horarios, base empleados).
+- Rama `codex/integracion-modelo-empleados-citas`: merge de `feature/02-CompletarBD` 83fa2c3, conservando autoría, auditoría y disponibilidad.
+- Citas vinculadas a employees.id y detalle appointment_services; agenda/inicio, instalador, demo y triggers adaptados.
+- Migración local aplicada con servidor detenido y respaldo privado en `.tools/backups/model-20261013-032106.sql`. Las 3 citas conservaron IDs, fechas, estados, notas y creación; se generaron sus 3 detalles.
+- 138 verificaciones aprobadas: 15 unitarias/renderizado, 18 HTTP, 47 empleados, 41 horarios y 17 de migración/instalación nueva. Sintaxis PHP revisada en los archivos modificados.
+- Contraseña del administrador local renovada con autorización; valor privado en `.env` y hash actualizado. Credencial retirada de la documentación vigente.
+- Ver `docs/MODELO-DATOS.md` antes de actualizar otra base. Crear/editar citas y resolver solapamientos sigue pendiente en #12. Issues y Trello no se cerraron.
