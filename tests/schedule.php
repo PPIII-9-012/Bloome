@@ -3,7 +3,13 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/app/bootstrap.php';
 
-$origin = 'http://127.0.0.1:8000';
+$testDatabase='bloome_test_schedule_'.bin2hex(random_bytes(5));
+$host=getenv('DB_HOST')?:'127.0.0.1'; $port=getenv('DB_PORT')?:'3306';
+$rootPassword=getenv('MYSQL_ROOT_PASSWORD')?:'';
+$root=new PDO("mysql:host=$host;port=$port;charset=utf8mb4",'root',$rootPassword,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
+$server=null; $pipes=[];
+$webPort=random_int(22001,25000);
+$origin='http://127.0.0.1:'.$webPort;
 $cookies = [];
 $checks = 0;
 
@@ -31,7 +37,9 @@ function req(string $page, array $fields = [], bool $post = false): array {
             $cookies[$match[1]] = $match[2];
         }
     }
-    return [(int)$status[1], $body];
+    $location='';
+    foreach($responseHeaders as $header) if(str_starts_with($header,'Location: ')) $location=substr($header,10);
+    return [(int)$status[1], $body, $location];
 }
 
 function extractToken(string $body): string {
@@ -49,6 +57,14 @@ function testAssert(bool $condition, string $label): void {
 }
 
 try {
+    $root->exec("CREATE DATABASE `$testDatabase` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+    putenv('DB_DATABASE='.$testDatabase); putenv('DB_USERNAME=root'); putenv('DB_PASSWORD='.$rootPassword);
+    putenv('ADMIN_EMAIL=schedule-admin@example.test'); putenv('ADMIN_PASSWORD='.bin2hex(random_bytes(12)));
+    foreach(explode(';',file_get_contents(ROOT.'/database/schema.sql')) as $sql) if(trim($sql)!=='') db()->exec($sql);
+    query("INSERT INTO users(name,email,password_hash,role) VALUES (?,?,?,'admin')",['QA admin',getenv('ADMIN_EMAIL'),password_hash(getenv('ADMIN_PASSWORD'),PASSWORD_DEFAULT)]);
+    $server=proc_open([PHP_BINARY,'-S',"127.0.0.1:$webPort",'-t',ROOT.'/public',ROOT.'/public/router.php'],[0=>['pipe','r'],1=>['file','php://temp','w'],2=>['file','php://temp','w']],$pipes,ROOT);
+    if(!is_resource($server)) throw new RuntimeException('No se pudo iniciar el servidor aislado.');
+    for($i=0;$i<50;$i++) { $socket=@fsockopen('127.0.0.1',$webPort); if($socket) { fclose($socket); break; } usleep(100000); }
     // 1. Acceso a festivos sin sesión redirige a login
     [$status] = req('holidays');
     testAssert($status === 303, 'Festivos protegido sin sesión');
@@ -74,7 +90,7 @@ try {
     // 5. Rechaza duplicado de feriado en la misma fecha
     [, $bodyAfter] = req('holidays');
     [$status] = req('holiday-new', ['csrf' => extractToken($bodyAfter), 'date' => $testHolidayDate, 'description' => 'Duplicado'], true);
-    testAssert($status === 303, 'Manejo de duplicado de feriado redirige con aviso');
+    testAssert($status === 422, 'Feriado duplicado devuelve error de validación');
 
     // 6. Admin accede a Horarios del centro
     [$status, $schedBody] = req('schedule');
@@ -128,8 +144,8 @@ try {
         6 => ['is_working' => '0', 'start_time' => '', 'end_time' => ''],
         7 => ['is_working' => '0', 'start_time' => '', 'end_time' => ''],
     ];
-    [$status] = req('employee-schedule-save', ['csrf' => extractToken($profBody), 'user_id' => $empId, 'schedule' => $empScheduleData], true);
-    testAssert($status === 303, 'Horario de empleado guardado');
+    [$status, , $savedLocation] = req('employee-schedule-save', ['csrf' => extractToken($profBody), 'user_id' => $empId, 'schedule' => $empScheduleData], true);
+    testAssert($status === 303 && $savedLocation === url('employee',['id'=>$empId]), 'Horario guardado redirige a una ruta válida');
 
     $savedEmpMon = query('SELECT * FROM employee_schedules WHERE user_id = ? AND day_of_week = 1', [$empId])->fetch();
     testAssert($savedEmpMon['start_time'] === '10:00:00' && $savedEmpMon['end_time'] === '16:00:00', 'Horario de empleado persistido en MySQL');
@@ -173,6 +189,29 @@ try {
     $checkDeleted = query('SELECT COUNT(*) FROM holidays WHERE id = ?', [(int)$holidayInDb['id']])->fetchColumn();
     testAssert((int)$checkDeleted === 0, 'Feriado eliminado de la base de datos');
 
+    $before=query('SELECT * FROM business_schedules ORDER BY day_of_week')->fetchAll();
+    $bad=$bizDays; $bad[1]['start_time']='07:00'; $bad[7]=['is_open'=>'1','start_time'=>['malicioso'],'end_time'=>'25:00'];
+    req('schedule',['csrf'=>$schedToken,'days'=>$bad],true);
+    testAssert(query('SELECT * FROM business_schedules ORDER BY day_of_week')->fetchAll()===$before,'Horario inválido no guarda parcialmente días anteriores');
+    [$status]=req('schedule',['csrf'=>$schedToken,'days'=>'cadena'],true);
+    testAssert($status===422 && query('SELECT * FROM business_schedules ORDER BY day_of_week')->fetchAll()===$before,'Estructura manipulada no produce error 500 ni modifica horarios');
+    [$status]=req('employee-schedule-save',['user_id'=>$empId,'schedule'=>$empScheduleData],true);
+    testAssert($status===419,'Guardar horario exige CSRF');
+    [$status]=req('employee-schedule-save',['csrf'=>$schedToken,'user_id'=>99999999,'schedule'=>$empScheduleData],true);
+    testAssert($status===404,'Empleado inexistente rechazado antes de escribir');
+    foreach([['2026-02-30 10:00','2026-02-30 11:00'],['2026-11-02 12:00','2026-11-02 11:00'],['2026-11-02 12:00','2026-11-02 12:00'],['2026-11-02 12:00','2026-11-03 13:00']] as [$start,$end]) testAssert(checkAppointmentAvailability($empId,$start,$end)!==null,'Disponibilidad rechaza intervalo inválido '.$start.' / '.$end);
+    testAssert(checkAppointmentAvailability($empId,'2026-11-02 10:00','2026-11-02 16:00')===null,'Límites exactos del horario permitidos');
+    query('UPDATE users SET active=0 WHERE id=?',[$empId]);
+    testAssert(checkAppointmentAvailability($empId,'2026-11-02 11:00','2026-11-02 12:00')!==null,'Disponibilidad rechaza empleado inactivo');
+    query('UPDATE users SET active=1 WHERE id=?',[$empId]);
+    query('DELETE FROM employee_schedules WHERE user_id=? AND day_of_week=1',[$empId]);
+    testAssert(checkAppointmentAvailability($empId,'2026-11-02 11:00','2026-11-02 12:00')!==null,'Sin horario individual no hay disponibilidad implícita');
+    saveEmployeeSchedule($empId,$empScheduleData);
+    query('DELETE FROM business_schedules WHERE day_of_week=1');
+    testAssert(checkAppointmentAvailability($empId,'2026-11-02 11:00','2026-11-02 12:00')!==null,'Sin horario del centro no hay disponibilidad implícita');
+    saveBusinessSchedule($bizDays);
+    [, $cleanProfile]=req('employee&id='.$empId);
+    testAssert(!str_contains($cleanProfile,'onclick=') && !str_contains($cleanProfile,'<script>') && str_contains($cleanProfile,'<details'),'Formularios funcionan con CSP sin JavaScript inline');
     // 16. Logout y verificación de permisos denegados a usuario profesional
     [, $lastBody] = req('holidays');
     req('logout', ['csrf' => extractToken($lastBody)], true);
@@ -186,21 +225,19 @@ try {
     [$status] = req('schedule');
     testAssert($status === 403, 'Profesional no tiene acceso a configuración de horarios (403)');
 
+    [, $ownProfile]=req('profile'); $ownCsrf=extractToken($ownProfile);
+    testAssert(!str_contains($ownProfile,'employee-schedule-save') && !str_contains($ownProfile,'employee-vacation-new'),'Profesional consulta disponibilidad sin controles administrativos');
+    foreach(['employee-schedule-save','employee-vacation-new','employee-vacation-delete'] as $route) {
+        [$status]=req($route,['csrf'=>$ownCsrf,'user_id'=>1,'schedule'=>$empScheduleData],true);
+        testAssert($status===403,'Profesional no modifica disponibilidad por '.$route);
+    }
     echo "\n$checks pruebas de Horarios, Vacaciones y Festivos aprobadas.\n";
 
 } catch (Throwable $e) {
     fwrite(STDERR, "\nFAIL: " . $e->getMessage() . "\n" . $e->getTraceAsString() . "\n");
     $failed = true;
 } finally {
-    // Limpieza de datos creados en el test
-    if (isset($empId) && $empId) {
-        query('DELETE FROM employee_vacations WHERE user_id = ?', [$empId]);
-        query('DELETE FROM employee_schedules WHERE user_id = ?', [$empId]);
-        query('DELETE FROM employees WHERE user_id = ?', [$empId]);
-        query('DELETE FROM employee_audit WHERE user_id = ?', [$empId]);
-        query('DELETE FROM users WHERE id = ?', [$empId]);
-    }
-    query('DELETE FROM holidays WHERE description LIKE ?', ['%Navidad Bloome%']);
+    if(is_resource($server)) { proc_terminate($server); foreach($pipes as $pipe) if(is_resource($pipe)) fclose($pipe); proc_close($server); }
+    if(preg_match('/^bloome_test_schedule_[a-f0-9]{10}$/D',$testDatabase)) $root->exec("DROP DATABASE IF EXISTS `$testDatabase`");
 }
-
-exit(isset($failed) ? 1 : 0);
+exit(isset($failed)?1:0);

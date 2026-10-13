@@ -1040,3 +1040,18 @@ button {
     .topbar-user-icon { display: none; }
     .figma-footer { flex-wrap: wrap; gap: 8px; padding: 16px 20px; }
 }
+
+/* Availability forms use native details and external CSS under the existing CSP. */
+.employee-profile-layout { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 24px; }
+.employee-profile-details { display: grid; gap: 24px; min-width: 0; }
+.employee-profile-details .form-card { min-width: 0; width: 100%; }
+.employee-profile-details dd { margin: 8px 0 20px; overflow-wrap: anywhere; }
+.schedule-add { margin-bottom: 24px; }
+.schedule-add summary { cursor: pointer; color: var(--teal-dark); font-weight: 600; padding: 12px 0; }
+.schedule-grid { display: grid; gap: 16px; }
+.schedule-row { display: grid; grid-template-columns: 120px minmax(0,1fr); align-items: center; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid #e5e7eb; }
+.schedule-times { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.schedule-times label { display: grid; gap: 6px; min-width: 0; font-size: 13px; }
+.schedule-times input { width: 100%; min-width: 0; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; background: white; font: inherit; }
+.schedule-hint { color: var(--text-muted); }
+@media(max-width:650px) { .employee-profile-layout, .schedule-row, .schedule-times { grid-template-columns: minmax(0,1fr); } .schedule-card { padding: 20px; } }

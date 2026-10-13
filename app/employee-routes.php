@@ -7,7 +7,7 @@ $editing = in_array($page, ['employee-new', 'employee-edit', 'profile-edit'], tr
 $isPostAction = in_array($page, ['employee-vacation-new', 'employee-vacation-delete', 'employee-schedule-save'], true);
 $deny = static function (int $status, string $message) use ($user, $page): never {
     http_response_code($status);
-    render('message', compact('user', 'page', 'message') + ['title' => $status === 404 ? 'Empleado no encontrado' : 'Acceso restringido']);
+    render('message', compact('user', 'page', 'message') + ['title' => $status === 404 ? 'Empleado no encontrado' : ($status === 422 ? 'Revisá los datos' : 'Acceso restringido')]);
     exit;
 };
 if (!$self && !canManageEmployees($user)) $deny(403, 'Solo un administrador puede gestionar empleados.');
@@ -30,6 +30,11 @@ if ($page === 'employees') {
     exit;
 }
 
+if ($isPostAction) {
+    if ($method !== 'POST') $deny(405, 'Método no permitido.');
+    if (!employeeRecord((int)input($_POST, 'user_id'))) $deny(404, 'Empleado no encontrado.');
+}
+
 if ($page === 'employee-vacation-new' && $method === 'POST') {
     $targetId = (int)input($_POST, 'user_id', input($_GET, 'id'));
     if ($targetId !== (int)$user['id'] && !canManageEmployees($user)) $deny(403, 'No podés gestionar vacaciones de otros empleados.');
@@ -37,18 +42,18 @@ if ($page === 'employee-vacation-new' && $method === 'POST') {
         addEmployeeVacation($targetId, input($_POST, 'description'), input($_POST, 'starts_at'), input($_POST, 'ends_at'));
         flash('Período de vacaciones guardado.');
     } catch (DomainException $e) {
-        flash($e->getMessage());
+        $deny(422, $e->getMessage());
     }
-    redirect($targetId === (int)$user['id'] && !canManageEmployees($user) ? 'profile' : url('employee', ['id' => $targetId]));
+    redirect('employee', ['id' => $targetId]);
 }
 
 if ($page === 'employee-vacation-delete' && $method === 'POST') {
     $vacationId = (int)input($_POST, 'vacation_id');
     $targetId = (int)input($_POST, 'user_id', input($_GET, 'id'));
     if ($targetId !== (int)$user['id'] && !canManageEmployees($user)) $deny(403, 'Acceso denegado.');
-    deleteEmployeeVacation($vacationId, (int)$user['id'], canManageEmployees($user));
+    deleteEmployeeVacation($vacationId, $targetId, canManageEmployees($user));
     flash('Vacación eliminada.');
-    redirect($targetId === (int)$user['id'] && !canManageEmployees($user) ? 'profile' : url('employee', ['id' => $targetId]));
+    redirect('employee', ['id' => $targetId]);
 }
 
 if ($page === 'employee-schedule-save' && $method === 'POST') {
@@ -58,9 +63,9 @@ if ($page === 'employee-schedule-save' && $method === 'POST') {
         saveEmployeeSchedule($targetId, $_POST['schedule'] ?? []);
         flash('Horario de trabajo actualizado.');
     } catch (DomainException $e) {
-        flash($e->getMessage());
+        $deny(422, $e->getMessage());
     }
-    redirect(url('employee', ['id' => $targetId]));
+    redirect('employee', ['id' => $targetId]);
 }
 $id = $self ? (int)$user['id'] : (int)input($_GET, 'id');
 $employee = $new ? ['name'=>'','email'=>'','phone'=>'','role'=>'professional','active'=>'1','appointment_color'=>'#0E3D3E'] : employeeRecord($id);
