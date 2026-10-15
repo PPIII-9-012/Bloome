@@ -4,13 +4,14 @@ declare(strict_types=1);
 $self = in_array($page, ['profile', 'profile-edit'], true);
 $new = $page === 'employee-new';
 $editing = in_array($page, ['employee-new', 'employee-edit', 'profile-edit'], true);
+$isPostAction = in_array($page, ['employee-vacation-new', 'employee-vacation-delete', 'employee-schedule-save'], true);
 $deny = static function (int $status, string $message) use ($user, $page): never {
     http_response_code($status);
-    render('message', compact('user', 'page', 'message') + ['title' => $status === 404 ? 'Empleado no encontrado' : 'Acceso restringido']);
+    render('message', compact('user', 'page', 'message') + ['title' => $status === 404 ? 'Empleado no encontrado' : ($status === 422 ? 'Revisá los datos' : 'Acceso restringido')]);
     exit;
 };
 if (!$self && !canManageEmployees($user)) $deny(403, 'Solo un administrador puede gestionar empleados.');
-if (!in_array($method, ['GET', 'POST'], true) || ($method === 'POST' && !$editing)) $deny(405, 'Método no permitido.');
+if (!in_array($method, ['GET', 'POST'], true) || ($method === 'POST' && !$editing && !$isPostAction)) $deny(405, 'Método no permitido.');
 // Identity and protected fields are never accepted from the self-service request.
 if ($self && (array_key_exists('id', $_GET) || array_intersect(['id','user_id','employee_id','role','active','appointment_color','password','password_hash'], array_keys($_POST)))) $deny(403, 'El perfil propio solo permite editar nombre, correo y teléfono.');
 if ($page === 'employees') {
@@ -27,6 +28,44 @@ if ($page === 'employees') {
     $employees = query('SELECT u.id,u.name,u.email,u.role,u.active,e.appointment_color FROM users u LEFT JOIN employees e ON e.user_id=u.id' . $where . " ORDER BY u.name,u.id LIMIT 12 OFFSET $offset", $params)->fetchAll();
     render('employees', compact('user','page','employees','search','filter','count','pages','number') + ['title'=>'Empleados']);
     exit;
+}
+
+if ($isPostAction) {
+    if ($method !== 'POST') $deny(405, 'Método no permitido.');
+    if (!employeeRecord((int)input($_POST, 'user_id'))) $deny(404, 'Empleado no encontrado.');
+}
+
+if ($page === 'employee-vacation-new' && $method === 'POST') {
+    $targetId = (int)input($_POST, 'user_id', input($_GET, 'id'));
+    if ($targetId !== (int)$user['id'] && !canManageEmployees($user)) $deny(403, 'No podés gestionar vacaciones de otros empleados.');
+    try {
+        addEmployeeVacation($targetId, input($_POST, 'description'), input($_POST, 'starts_at'), input($_POST, 'ends_at'));
+        flash('Período de vacaciones guardado.');
+    } catch (DomainException $e) {
+        $deny(422, $e->getMessage());
+    }
+    redirect('employee', ['id' => $targetId]);
+}
+
+if ($page === 'employee-vacation-delete' && $method === 'POST') {
+    $vacationId = (int)input($_POST, 'vacation_id');
+    $targetId = (int)input($_POST, 'user_id', input($_GET, 'id'));
+    if ($targetId !== (int)$user['id'] && !canManageEmployees($user)) $deny(403, 'Acceso denegado.');
+    deleteEmployeeVacation($vacationId, $targetId, canManageEmployees($user));
+    flash('Vacación eliminada.');
+    redirect('employee', ['id' => $targetId]);
+}
+
+if ($page === 'employee-schedule-save' && $method === 'POST') {
+    $targetId = (int)input($_POST, 'user_id', input($_GET, 'id'));
+    if (!canManageEmployees($user)) $deny(403, 'Solo el administrador puede definir horarios de empleados.');
+    try {
+        saveEmployeeSchedule($targetId, $_POST['schedule'] ?? []);
+        flash('Horario de trabajo actualizado.');
+    } catch (DomainException $e) {
+        $deny(422, $e->getMessage());
+    }
+    redirect('employee', ['id' => $targetId]);
 }
 $id = $self ? (int)$user['id'] : (int)input($_GET, 'id');
 $employee = $new ? ['name'=>'','email'=>'','phone'=>'','role'=>'professional','active'=>'1','appointment_color'=>'#0E3D3E'] : employeeRecord($id);
@@ -51,5 +90,7 @@ if ($method === 'POST') {
     http_response_code(422);
 }
 $title = $self ? ($editing ? 'Editar mi perfil' : 'Mi perfil') : ($new ? 'Nuevo empleado' : ($editing ? 'Editar empleado' : 'Perfil del empleado'));
-render($editing ? 'employee-form' : 'employee-profile', compact('user','page','employee','errors','id','self','new','title'));
+$vacations = (!$editing && $id) ? employeeVacations($id) : [];
+$schedule = (!$editing && $id) ? employeeSchedule($id) : [];
+render($editing ? 'employee-form' : 'employee-profile', compact('user','page','employee','errors','id','self','new','title','vacations','schedule'));
 exit;

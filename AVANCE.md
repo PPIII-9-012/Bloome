@@ -51,3 +51,11 @@ La agenda actual tiene una sola relación de servicio por cita y usa usuarios co
 Implementado en `feature/09-empleados-perfil`: listado con búsqueda/paginación, alta, edición, rol, color en agenda, activación/desactivación y perfil propio limitado. Permisos PHP, CSRF, consultas preparadas y transacciones; bloqueo del último administrador con prueba concurrente. Migración 009 aplicada en la base local, sin cambiar las relaciones de citas ni eliminar historial.
 
 Detalle de archivos, migración, contrato con la rama de base de datos y aceptación pendiente: [docs/EMPLEADOS.md](docs/EMPLEADOS.md). La dependencia #3 sigue abierta y propone cambiar la FK de citas; #4 sigue abierta. Trello no pudo consultarse (401), y el navegador automatizado está bloqueado por `setup refresh had errors`.
+
+### Verificación retomada tras reinicio
+
+Terminal y navegador funcionando. Revisión visual de empleados/perfil realizada en escritorio y móvil; corregido el desbordamiento de formularios y barra superior. Las 80 pruebas de #9 vuelven a pasar sobre `58ec661`, que incluye los avances posteriores de #10. Trello consultado: la tarjeta de empleados sigue en **En desarrollo**. No se cambió su estado ni se cerró el issue. Ver `docs/EMPLEADOS.md`.
+
+## Revisión del avance #10 — 12/10/2026
+
+Corregidos formularios bloqueados por CSP, redirecciones del perfil, guardados parciales y validación de disponibilidad. Pruebas de horarios trasladadas a una base temporal aislada. Total verificado: 121 pruebas (15 + 18 + 47 + 41). Detalles y pendientes de integración con turnos en [docs/HORARIOS.md](docs/HORARIOS.md). Sin nuevas migraciones; cambios locales en `feature/10-horarios-vacaciones-feriados`.

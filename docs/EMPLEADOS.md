@@ -59,9 +59,9 @@ Al integrar #4, conectar `canManageEmployees` y `employee_audit` con su polític
 - 47 pruebas nuevas HTTP/MySQL: migración repetible, alta y duplicados, campos inválidos, búsqueda y escape, CSRF, permisos para profesional/recepción, perfil ajeno, elevación de privilegios, inactividad de usuario o empleado, reactivación, conservación de historial, triggers y concurrencia del último administrador.
 - `tests/employees.php` usa las credenciales de migración locales para crear una base temporal `bloome_test_employees_<aleatorio>`, inicia un servidor PHP aislado y elimina únicamente esa base y su proceso al finalizar. No modifica los datos de la aplicación. Necesita permiso de crear/eliminar esa base y triggers.
 - Capturas de referencia revisadas: 06, 10, 27, 31, 34 y 35. Se omiten horarios/vacaciones fuera de alcance y se conserva nombre completo del modelo existente.
-- La inspección visual interactiva está pendiente: tanto CUA como computer-use fallan al iniciar por `setup refresh had errors`. Las rutas y formularios sí se verificaron por HTTP real.
+- Revisión visual retomada después del reinicio de la PC: terminal y navegador operativos. Verificados listado, alta, perfil y edición; listado y edición propia/administrativa revisados a 390 px. A 390 px el listado y la edición propia no desbordan el documento; la tabla tiene desplazamiento interno. Listado de escritorio verificado a 1280 px. El ajuste móvil de formularios y barra superior está incluido en el código actual.
 
-No cerrar #9 ni marcar Hecho hasta completar la revisión visual y la aceptación del equipo, considerando las dependencias aún abiertas.
+La revisión visual del alcance #9 quedó realizada. No cerrar #9 ni marcar Hecho antes de la aceptación del equipo y la revisión de sus dependencias. Los nuevos controles de horarios/vacaciones de #10 no forman parte de esta validación.
 
 ## Archivos del incremento
 
@@ -74,3 +74,10 @@ No cerrar #9 ni marcar Hecho hasta completar la revisión visual y la aceptació
 - `views/layout.php`, `views/appointment-list.php`, `public/assets/app.css`: navegación, color de citas y presentación adaptable.
 - `tests/employees.php`: pruebas aisladas HTTP/MySQL y de concurrencia.
 - `README.md`, `AVANCE.md`, este documento: uso, resultados y dependencias pendientes.
+
+## Reanudación tras reinicio — 11/10/2026
+
+- Estado encontrado: `feature/09-empleados-perfil` apunta a `81aa83c`; la rama activa `feature/10-horarios-vacaciones-feriados` apunta a `58ec661` e incluye #9. Se preservaron esos commits y la rama activa.
+- Reejecutadas sobre el estado actual: 15 pruebas unitarias, 18 HTTP/MySQL y 47 de empleados; las 80 pasan.
+- Trello consultado con sesión del navegador: tarjeta `08 · P0 · B · Gestión de empleados y perfil propio`, lista **En desarrollo**, asignada a Juan Manuel De Monasterio. Descripción y aceptación confirmadas; no se modificó la tarjeta.
+- El 401 de la consulta directa y el bloqueo del navegador descritos arriba corresponden a la revisión inicial; ya no impiden esta revisión por navegador.
