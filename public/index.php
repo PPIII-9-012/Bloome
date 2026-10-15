@@ -67,7 +67,7 @@ try {
             'appointments' => query("SELECT COUNT(*) FROM appointments WHERE starts_at >= ? AND starts_at < ? AND status <> 'cancelled'", [$today, date('Y-m-d', strtotime('+1 day'))])->fetchColumn(),
             'services' => query('SELECT COUNT(*) FROM services WHERE active = 1')->fetchColumn(),
         ];
-        $appointments = query('SELECT a.*, c.first_name, c.last_name, s.name AS service_name, u.name AS employee_name, e.appointment_color FROM appointments a JOIN clients c ON c.id=a.client_id JOIN services s ON s.id=a.service_id JOIN users u ON u.id=a.employee_id LEFT JOIN employees e ON e.user_id=u.id WHERE a.starts_at >= ? AND a.starts_at < ? ORDER BY a.starts_at LIMIT 6', [$today, date('Y-m-d', strtotime('+1 day'))])->fetchAll();
+        $appointments = appointmentsBetween($today, date('Y-m-d', strtotime('+1 day')), 6);
         render('dashboard', compact('user', 'page', 'stats', 'appointments') + ['title' => 'Tu centro, en un vistazo']);
     } elseif ($page === 'clients' && $method === 'GET') {
         $search = substr(input($_GET, 'q'), 0, 100);
@@ -115,7 +115,7 @@ try {
         $date = input($_GET, 'date', date('Y-m-d'));
         if (!validDate($date)) $date = date('Y-m-d');
         $next = (new DateTimeImmutable($date))->modify('+1 day')->format('Y-m-d');
-        $appointments = query('SELECT a.*, c.first_name, c.last_name, s.name AS service_name, u.name AS employee_name, e.appointment_color FROM appointments a JOIN clients c ON c.id=a.client_id JOIN services s ON s.id=a.service_id JOIN users u ON u.id=a.employee_id LEFT JOIN employees e ON e.user_id=u.id WHERE starts_at >= ? AND starts_at < ? ORDER BY starts_at', [$date, $next])->fetchAll();
+        $appointments = appointmentsBetween($date, $next);
         render('agenda', compact('user', 'page', 'date', 'appointments') + ['title' => 'Agenda']);
     } else {
         http_response_code(404);

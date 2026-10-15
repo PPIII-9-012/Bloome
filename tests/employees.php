@@ -42,10 +42,12 @@ try {
     $password = bin2hex(random_bytes(12));
     query("INSERT INTO users (name,email,password_hash,role) VALUES (?,?,?,'admin')", ['QA admin','admin@example.test',password_hash($password,PASSWORD_DEFAULT)]);
     $admin = (int)db()->lastInsertId();
+    migrateEmployees();
+    $adminEmployee = (int)query('SELECT id FROM employees WHERE user_id=?', [$admin])->fetchColumn();
     // Existing history must survive migration, including repeat execution.
     query("INSERT INTO clients (first_name,last_name) VALUES ('QA','Historia')"); $client = db()->lastInsertId();
     query("INSERT INTO services (name,duration_minutes,price) VALUES ('QA',30,100)"); $service = db()->lastInsertId();
-    query("INSERT INTO appointments (client_id,employee_id,service_id,starts_at,ends_at,status) VALUES (?,?,?,'2026-01-01 09:00','2026-01-01 09:30','completed')", [$client,$admin,$service]);
+    query("INSERT INTO appointments (client_id,employee_id,starts_at,ends_at,status) VALUES (?,?,'2026-01-01 09:00','2026-01-01 09:30','completed')", [$client,$adminEmployee]);
     $old = query('SELECT * FROM appointments')->fetchAll();
     migrateEmployees(); migrateEmployees();
     checkEmployee(query('SELECT * FROM appointments')->fetchAll() === $old, 'Migración repetible conserva citas y sus relaciones');
@@ -79,16 +81,17 @@ try {
     checkEmployee(httpEmployee('worker','profile-edit',['csrf'=>$workerCsrf,'name'=>'Perfil actualizado','email'=>'worker-new@example.test','phone'=>'12345678'])[0]===303,'Edición propia permitida y persistida');
     checkEmployee(employeeRecord($worker)['phone']==='12345678','Teléfono de perfil guardado');
     checkEmployee(httpEmployee('worker','profile-edit',['csrf'=>$workerCsrf,'name'=>'QA','email'=>'admin@example.test','phone'=>''])[0]===422,'Perfil rechaza correo duplicado sin cambiar datos');
-    query("INSERT INTO appointments (client_id,employee_id,service_id,starts_at,ends_at,status) VALUES (?,?,?,'2026-01-02 09:00','2026-01-02 09:30','completed')",[$client,$worker,$service]);
-    $history=query('SELECT * FROM appointments WHERE employee_id=?',[$worker])->fetchAll();
+    $workerEmployee = (int)query('SELECT id FROM employees WHERE user_id=?', [$worker])->fetchColumn();
+    query("INSERT INTO appointments (client_id,employee_id,starts_at,ends_at,status) VALUES (?,?,'2026-01-02 09:00','2026-01-02 09:30','completed')",[$client,$workerEmployee]);
+    $history=query('SELECT * FROM appointments WHERE employee_id=?',[$workerEmployee])->fetchAll();
     $edit=array_replace($fields,['email'=>'worker-new@example.test','active'=>'0']); unset($edit['password']);
     checkEmployee(httpEmployee('admin','employee-edit&id='.$worker,$edit)[0]===303,'Administrador desactiva empleado');
     checkEmployee((int)employeeRecord($worker)['active']===0 && (int)query('SELECT active FROM employees WHERE user_id=?',[$worker])->fetchColumn()===0,'Desactivación sincroniza usuario y empleado');
     checkEmployee(httpEmployee('worker','profile')[0]===303,'Sesión ya abierta pierde acceso al desactivar');
     checkEmployee(loginEmployee('inactive','worker-new@example.test',$password)===422,'Empleado inactivo no puede iniciar sesión');
-    checkEmployee(query('SELECT * FROM appointments WHERE employee_id=?',[$worker])->fetchAll()===$history,'Desactivar conserva historial íntegro');
-    checkEmployee(rejectedSql(fn()=>query("INSERT INTO appointments (client_id,employee_id,service_id,starts_at,ends_at) VALUES (?,?,?,'2027-01-01 09:00','2027-01-01 09:30')",[$client,$worker,$service])),'MySQL impide nueva cita con empleado inactivo');
-    checkEmployee(rejectedSql(fn()=>query('UPDATE appointments SET employee_id=? WHERE id=?',[$worker,$old[0]['id']])),'MySQL impide reasignar cita a inactivo');
+    checkEmployee(query('SELECT * FROM appointments WHERE employee_id=?',[$workerEmployee])->fetchAll()===$history,'Desactivar conserva historial íntegro');
+    checkEmployee(rejectedSql(fn()=>query("INSERT INTO appointments (client_id,employee_id,starts_at,ends_at) VALUES (?,?,'2027-01-01 09:00','2027-01-01 09:30')",[$client,$workerEmployee])),'MySQL impide nueva cita con empleado inactivo');
+    checkEmployee(rejectedSql(fn()=>query('UPDATE appointments SET employee_id=? WHERE id=?',[$workerEmployee,$old[0]['id']])),'MySQL impide reasignar cita a inactivo');
     checkEmployee(rejectedSql(fn()=>query("UPDATE appointments SET starts_at='2027-01-01 09:00',ends_at='2027-01-01 09:30' WHERE id=?",[$history[0]['id']])),'MySQL impide reprogramar empleado inactivo');
     [, $body]=httpEmployee('admin','agenda&date=2026-01-02');
     checkEmployee(str_contains($body,'QA &lt;script&gt;') && str_contains($body,'#FF8800'),'Agenda conserva empleado inactivo y muestra su color');
@@ -106,7 +109,7 @@ try {
     // Partial legacy employee state must also be respected by auth and assignment.
     query('UPDATE employees SET active=0 WHERE user_id=?',[$worker]);
     checkEmployee(httpEmployee('reactivated','profile')[0]===303,'Estado inactivo de employees también revoca sesión');
-    checkEmployee(rejectedSql(fn()=>query("INSERT INTO appointments (client_id,employee_id,service_id,starts_at,ends_at) VALUES (?,?,?,'2027-02-01 09:00','2027-02-01 09:30')",[$client,$worker,$service])),'Estado inactivo de employees también impide nuevas citas');
+    checkEmployee(rejectedSql(fn()=>query("INSERT INTO appointments (client_id,employee_id,starts_at,ends_at) VALUES (?,?,'2027-02-01 09:00','2027-02-01 09:30')",[$client,$workerEmployee])),'Estado inactivo de employees también impide nuevas citas');
     query('UPDATE employees SET active=1 WHERE user_id=?',[$worker]);
     $dormant=saveEmployee($admin,null,['name'=>'QA dormant','email'=>'dormant@example.test','phone'=>'','role'=>'admin','active'=>'1','appointment_color'=>'#123456','password'=>$password],false);
     query('UPDATE employees SET active=0 WHERE user_id=?',[$dormant]);

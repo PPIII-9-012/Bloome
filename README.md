@@ -12,7 +12,7 @@ Primera entrega de código basada en la página SISTEMA del draft. PHP 8.4 + MyS
 - Esquema inicial, instalador de administrador y datos ficticios opcionales.
 - Interfaz adaptable a escritorio y móvil; errores y estados vacíos.
 
-Pendiente: recuperación de contraseña, ficha integral, crear/editar citas, conflictos de disponibilidad, múltiples servicios por cita, caja, ventas, cobros, estadísticas y configuración. El menú identifica lo pendiente y no simula operaciones completadas.
+Pendiente: recuperación de contraseña, ficha integral, crear/editar citas, conflictos de disponibilidad, edición de múltiples servicios por cita, caja, ventas, cobros, estadísticas y configuración. El menú identifica lo pendiente y no simula operaciones completadas.
 
 El roadmap propone Laravel para el sistema completo. Este primer corte es PHP sin dependencias de Composer para que se pueda inspeccionar y ejecutar fácilmente. Antes de ampliar ventas y caja, decidir si trasladar esta base a Laravel; no mezclar dos arquitecturas en paralelo.
 
@@ -86,4 +86,4 @@ Próximo incremento: ficha de cliente y CRUD de citas con transacciones y valida
 
 ## Empleados y perfil
 
-Gestión administrativa en `/?page=employees`; perfil propio desde el nombre de usuario en la barra superior. Antes de usar esta versión sobre una base existente, ejecutar `php bin/migrate-employees.php` con permisos de migración. Ver [instalación, permisos y compatibilidad con el issue #3](docs/EMPLEADOS.md).
+Gestión administrativa en `/?page=employees`; perfil propio desde el nombre de usuario en la barra superior. Antes de usar esta versión sobre una base existente, seguir [la migración del modelo](docs/MODELO-DATOS.md), con respaldo y escrituras detenidas. Ver [instalación, permisos y compatibilidad con el issue #3](docs/EMPLEADOS.md).

@@ -14,16 +14,20 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($password) < 12 || strl
     exit(1);
 }
 try {
+    require ROOT . '/app/employee-migration.php';
+    require ROOT . '/app/model-migration.php';
+    if (appointmentEmployeeTarget() === 'users' && !in_array('--maintenance', $argv, true)) {
+        throw new RuntimeException('Respaldá la base, detené las escrituras y ejecutá con --maintenance.');
+    }
     $schema = file_get_contents(ROOT . '/database/schema.sql');
     foreach (explode(';', $schema) as $statement) {
         if (trim($statement) !== '') db()->exec($statement);
     }
     $exists = query('SELECT id FROM users WHERE email = ?', [$email])->fetchColumn();
     if (!$exists) query('INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)', [$name, $email, password_hash($password, PASSWORD_DEFAULT), 'admin']);
-    require ROOT . '/app/employee-migration.php';
-    migrateEmployees();
+    migrateAppointmentModel();
     echo "Esquema instalado. Administrador " . ($exists ? 'existente conservado' : 'creado') . ".\n";
 } catch (Throwable $e) {
-    fwrite(STDERR, "Instalación incompleta. Revisá MySQL y sus permisos de migración (ver docs/EMPLEADOS.md). " . $e->getCode() . "\n");
+    fwrite(STDERR, "Instalación incompleta. Revisá MySQL, permisos y el procedimiento de docs/MODELO-DATOS.md. " . $e->getCode() . "\n");
     exit(1);
 }
