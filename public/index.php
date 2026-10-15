@@ -60,6 +60,9 @@ try {
     if (in_array($page, ['holidays','holiday-new','holiday-delete','schedule'], true)) {
         require ROOT . '/app/schedule-routes.php';
     }
+    if (in_array($page, ['appointment-new','appointment-edit','appointment-cancel'], true)) {
+        require ROOT . '/app/appointment-routes.php';
+    }
     if ($page === 'dashboard' && $method === 'GET') {
         $today = date('Y-m-d');
         $stats = [

@@ -1,9 +1,6 @@
 <!-- FIGMA ACTION BAR (14-agenda.png) -->
 <div class="figma-action-bar">
-    <button type="button" class="figma-action-btn" onclick="alert('La creación de citas se implementará en la próxima etapa.');">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        <span>Nueva Cita</span>
-    </button>
+    <?php if (canEdit($user)): ?><a class="figma-action-btn" href="<?= e(url('appointment-new')) ?>">Nuevo turno</a><?php endif; ?>
     <button type="button" class="figma-action-btn" onclick="alert('El registro de ventas se implementará en la próxima etapa.');">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polygon points="12 6 13.8 9.8 18 10.4 15 13.3 15.7 17.5 12 15.5 8.3 17.5 9 13.3 6 10.4 10.2 9.8 12 6"/></svg>
         <span>Nueva Venta</span>
