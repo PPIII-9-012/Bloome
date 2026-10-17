@@ -87,3 +87,7 @@ Próximo incremento: ficha de cliente y CRUD de citas con transacciones y valida
 ## Empleados y perfil
 
 Gestión administrativa en `/?page=employees`; perfil propio desde el nombre de usuario en la barra superior. Antes de usar esta versión sobre una base existente, seguir [la migración del modelo](docs/MODELO-DATOS.md), con respaldo y escrituras detenidas. Ver [instalación, permisos y compatibilidad con el issue #3](docs/EMPLEADOS.md).
+
+## Turnos en desarrollo
+
+Alta, edición y cancelación disponibles para administración/recepción desde la agenda, con varios servicios y control transaccional de solapamientos. Ver [alcance, instalación y pendientes](docs/TURNOS.md). Descansos/jornada partida y revisión del equipo siguen pendientes; las vistas de semana/mes corresponden a #11.

@@ -271,6 +271,15 @@ CREATE TABLE IF NOT EXISTS payments (
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS appointment_audit (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    appointment_id BIGINT UNSIGNED NOT NULL,
+    actor_id BIGINT UNSIGNED NOT NULL,
+    action VARCHAR(30) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX appointment_audit_history (appointment_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS employee_audit (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     actor_id BIGINT UNSIGNED NOT NULL,

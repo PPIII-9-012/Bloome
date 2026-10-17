@@ -12,6 +12,7 @@
                 <th style="width: 140px;">Horario</th>
                 <th>Cliente / Servicio</th>
                 <th>Profesional</th>
+                <?php if (isset($user) && canEdit($user)): ?><th>Acciones</th><?php endif; ?>
                 <th style="width: 130px; text-align: right;">Estado</th>
             </tr>
         </thead>
@@ -27,6 +28,7 @@
                     <small style="color: var(--text-muted); font-size: 12px;"><?= e($appointment['service_name']) ?></small>
                 </td>
                 <td style="color: var(--text-secondary);"><?= employeeSwatch($appointment['appointment_color'] ?? null) ?> <?= e($appointment['employee_name']) ?></td>
+                <?php if (isset($user) && canEdit($user)): ?><td><a href="<?= e(url('appointment-edit',['id'=>$appointment['id']])) ?>">Editar turno</a></td><?php endif; ?>
                 <td style="text-align: right;">
                     <span class="badge <?= e($appointment['status']) ?>"><?= e($statuses[$appointment['status']]) ?></span>
                 </td>

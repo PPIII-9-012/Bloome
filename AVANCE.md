@@ -69,3 +69,12 @@ Corregidos formularios bloqueados por CSP, redirecciones del perfil, guardados p
 - 138 verificaciones aprobadas: 15 unitarias/renderizado, 18 HTTP, 47 empleados, 41 horarios y 17 de migración/instalación nueva. Sintaxis PHP revisada en los archivos modificados.
 - Contraseña del administrador local renovada con autorización; valor privado en `.env` y hash actualizado. Credencial retirada de la documentación vigente.
 - Ver `docs/MODELO-DATOS.md` antes de actualizar otra base. Crear/editar citas y resolver solapamientos sigue pendiente en #12. Issues y Trello no se cerraron.
+
+## 15 de octubre de 2026 — tareas y primer incremento de turnos
+
+- GitHub #12 y #11 asignados a DeMonasterio. Tarjetas correspondientes de Trello asignadas a Juan; turnos movida a En desarrollo y vistas conservada en backlog.
+- Nuevo issue #38 para descansos/jornada partida: el modelo actual solo admite horario continuo.
+- Nuevo formulario de alta/edición/cancelación con servicios múltiples, duración calculada, permisos, CSRF, historial, auditoría y control de formularios obsoletos.
+- 43 pruebas aisladas nuevas, incluida concurrencia con dos procesos; 138 pruebas previas aprobadas. Total: 181.
+- Respaldo local `.tools/backups/model-20261015-113100.sql`; tabla de auditoría instalada. Historial local de 3 citas intacto. Formulario revisado en navegador de escritorio.
+- Entrega en borrador: descansos y revisión del equipo pendientes. #12 permanece abierto. Detalles en docs/TURNOS.md.
