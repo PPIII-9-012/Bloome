@@ -23,6 +23,9 @@ foreach ($statements as $stmt) {
     }
 }
 
+require ROOT . '/app/break-migration.php';
+migrateScheduleBreaks();
+
 // Inicializar horario general del centro si está vacío (Lunes a Viernes 08:00 a 20:00, Sábados 09:00 a 14:00, Domingos cerrado)
 $existing = (int)$pdo->query('SELECT COUNT(*) FROM business_schedules')->fetchColumn();
 if ($existing === 0) {

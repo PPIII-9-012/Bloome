@@ -55,6 +55,8 @@ function migrateAppointmentModel(): void
             db()->exec("ALTER TABLE appointments MODIFY status ENUM('pending','confirmed','completed','cancelled','missed') NOT NULL DEFAULT 'pending'");
         }
         migrateEmployees();
+        require_once ROOT . '/app/break-migration.php';
+        migrateScheduleBreaks();
         db()->exec('CREATE TABLE IF NOT EXISTS schema_migrations (version VARCHAR(100) PRIMARY KEY, applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB');
         query("INSERT IGNORE INTO schema_migrations (version) VALUES ('003-employees-appointment-services')");
     } finally {

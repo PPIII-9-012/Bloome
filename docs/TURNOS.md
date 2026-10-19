@@ -33,9 +33,10 @@ en la base de la aplicación. Ejecutar además las suites existentes.
 
 ## Alcance pendiente
 
-- #38: descansos/jornada partida. El modelo actual tiene un intervalo continuo
-  por empleado y día. Este requisito de la tarjeta Trello aún no está cubierto.
+- #38: implementado un descanso opcional por empleado y día; consultar
+  [configuración y migración](DESCANSOS.md). Pendiente revisión de esta entrega.
 - #11: vistas de semana/mes y filtros, asignado como siguiente tarea.
 - Catálogo y recuperación de contraseña permanecen con su responsable actual.
-- El PR se entrega en borrador: no cerrar #12 ni marcar su tarjeta Hecho antes
-  de resolver descansos y obtener revisión de otra persona.
+- El incremento inicial de turnos (#39) ya fue integrado en develop. No cerrar
+  #12 ni marcar su tarjeta Hecho antes de aceptar la entrega de descansos y
+  obtener revisión de otra persona.
