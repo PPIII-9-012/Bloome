@@ -44,4 +44,7 @@ $period=agendaPeriod('2026-03-31','month');
 check($period['previous']==='2026-02-01' && $period['next']==='2026-04-01','Navegación mensual no salta meses cortos');
 $period=agendaPeriod('2026-12-31','day');
 check($period['until']==='2027-01-01' && $period['previous']==='2026-12-30','Día cruza año correctamente');
+check(agendaContext(['date'=>'bad','mode'=>'javascript:','employee'=>'-1','status'=>'bad','return'=>'https://example.test'])===[],'Contexto de retorno acepta solo parámetros válidos de agenda');
+$_SESSION['appointment_drafts']['expired']=['created'=>time()-3601];
+check(appointmentDraft('expired')===null && appointmentDraft('missing')===null,'Borradores vencidos o inexistentes se rechazan');
 echo "\n$passed pruebas aprobadas.\n";
