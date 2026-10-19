@@ -8,11 +8,11 @@ Primera entrega de código basada en la página SISTEMA del draft. PHP 8.4 + MyS
 - Sesiones, protección CSRF, escape de HTML y permisos de escritura para administrador/recepción.
 - Inicio con conteos y citas obtenidos de la base de datos.
 - Clientes: listado, búsqueda, paginación, alta y edición con validación en servidor.
-- Agenda diaria con selector de fecha y estados; alta, edición y cancelación de turnos con múltiples servicios y control de disponibilidad.
+- Agenda por día, semana y mes con filtros de empleado y estado; alta, edición y cancelación de turnos con múltiples servicios y control de disponibilidad.
 - Esquema inicial, instalador de administrador y datos ficticios opcionales.
 - Interfaz adaptable a escritorio y móvil; errores y estados vacíos.
 
-Pendiente: recuperación de contraseña, ficha integral, calendario semanal/mensual y filtros, catálogo completo, caja, ventas, cobros, estadísticas y configuración restante. El menú identifica lo pendiente y no simula operaciones completadas.
+Pendiente: recuperación de contraseña, ficha integral, filtro de categoría del calendario, catálogo completo, caja, ventas, cobros, estadísticas y configuración restante. El menú identifica lo pendiente y no simula operaciones completadas.
 
 El roadmap propone Laravel para el sistema completo. Este primer corte es PHP sin dependencias de Composer para que se pueda inspeccionar y ejecutar fácilmente. Antes de ampliar ventas y caja, decidir si trasladar esta base a Laravel; no mezclar dos arquitecturas en paralelo.
 
@@ -82,7 +82,7 @@ Con el servidor local iniciado y `.env` configurado, `php tests/http.php` ejecut
 
 Los usuarios profesionales tienen acceso de lectura al listado de clientes y agenda en este piloto de un solo centro. Ese alcance debe revisarse antes de usar datos personales reales. No hay aislamiento entre múltiples centros.
 
-Para reservar, configurar los horarios reales del centro y de cada empleado, descansos y ausencias. No se crean horarios de trabajo automáticamente. Próximo incremento según Trello: calendario y filtros (#11).
+Para reservar, configurar los horarios reales del centro y de cada empleado, descansos y ausencias. No se crean horarios de trabajo automáticamente. Calendario y filtros (#11) en revisión: ver [alcance y pendientes](docs/CALENDARIO.md).
 
 ## Empleados y perfil
 
@@ -90,5 +90,4 @@ Gestión administrativa en `/?page=employees`; perfil propio desde el nombre de 
 
 ## Turnos en desarrollo
 
-Alta, edición y cancelación disponibles para administración/recepción desde la agenda, con varios servicios y control transaccional de solapamientos. Ver [alcance, instalación y pendientes](docs/TURNOS.md). Descansos/jornada partida implementados con un descanso por día; ver [configuración y migración](docs/DESCANSOS.md). Pendiente revisión del equipo; las vistas de semana/mes corresponden a #11.
-
+Alta, edición y cancelación disponibles para administración/recepción desde la agenda, con varios servicios y control transaccional de solapamientos. Ver [alcance, instalación y pendientes](docs/TURNOS.md). Descansos/jornada partida implementados con un descanso por día; ver [configuración y migración](docs/DESCANSOS.md). Pendiente revisión del equipo; las vistas de semana/mes y filtros de empleado/estado están implementados en el avance de #11; categoría y revisión visual pendientes.

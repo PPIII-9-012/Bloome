@@ -129,6 +129,19 @@ try {
     apCheck(appointmentRecord($legacyId)['ends_at']==='2026-11-12 12:30:00','Reprogramar calcula la duración de servicios');
     [, $agendaBody]=apRequest('agenda');
     apCheck(!str_contains($agendaBody,'onclick=') && !str_contains($agendaBody,'$ 0,00') && !str_contains($agendaBody,'income-pill'),'Agenda no ofrece acciones simuladas ni ingresos ficticios');
+    $calendar=appointmentsBetween('2026-11-12','2026-11-13',null,501,'confirmed');
+    apCheck(count($calendar)===1 && (int)$calendar[0]['id']===$legacyId,'Calendario combina fecha, empleado canónico y estado');
+    apCheck(appointmentsBetween('2026-11-11','2026-11-12',null,501,'confirmed')===[],'Límite final del período excluye día siguiente');
+    apCheck(appointmentsBetween('2026-11-12','2026-11-13',null,501,'cancelled')===[],'Filtro de estado excluye otras citas');
+    [$status,$body]=apRequest('agenda&date=2026-11-12&mode=month&employee=501&status=confirmed');
+    apCheck($status===200 && str_contains($body,'agenda-month') && str_contains($body,'12:00–12:30') && str_contains($body,'30/11'),'Mes muestra citas reales y último día');
+    apCheck(str_contains($body,'employee=501&amp;status=confirmed&amp;date=2026-12-01'),'Navegar conserva ambos filtros');
+    apCheck(!str_contains($body,'Editar turno') && !str_contains($body,'Nuevo turno'),'Calendario profesional no muestra acciones de escritura');
+    [$status,$body]=apRequest('agenda&date=2026-11-12&mode=week&employee=501&status=cancelled');
+    apCheck($status===200 && str_contains($body,'agenda-week') && str_contains($body,'No hay turnos para este período y estos filtros.'),'Semana vacía informa alcance de filtros');
+    apCheck(apRequest('agenda&employee=999999')[0]===422 && apRequest('agenda&status=invalid')[0]===422,'Filtros desconocidos se rechazan en servidor');
+    [$status,$body]=apRequest('agenda&date=2026-11-12&mode=unknown');
+    apCheck($status===200 && str_contains($body,'agenda-day'),'Vista inválida vuelve al día');
     echo "\n$checks pruebas de turnos aprobadas.\n";
 } finally {
     if(db()->inTransaction()) db()->rollBack();

@@ -1062,3 +1062,22 @@ button {
 .appointment-cancel { margin-top: 24px; border-top: 1px solid #d7e1dd; padding-top: 20px; }
 .appointment-cancel summary { cursor: pointer; font-weight: 600; }
 .employee-form textarea { max-width: 100%; }
+
+/* Calendar is server-rendered, without paid plugins or inline scripts. */
+.agenda-controls { display:flex; flex-wrap:wrap; align-items:end; gap:16px; }
+.agenda-controls label { display:grid; gap:6px; min-width:140px; flex:1; }
+.agenda-controls input, .agenda-controls select { width:100%; padding:10px; font:inherit; border:1px solid #d1d5db; border-radius:8px; background:white; }
+.agenda-navigation { display:flex; flex-wrap:wrap; gap:12px; margin:20px 0; }
+.agenda-calendar { display:grid; gap:10px; }
+.agenda-month { grid-template-columns:repeat(7,minmax(0,1fr)); }
+.agenda-week { grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); }
+.agenda-day-card { min-width:0; background:white; border:1px solid #d7e1dd; border-radius:10px; padding:12px; overflow-wrap:anywhere; }
+.agenda-day-card h2 { font-size:16px; margin:0 0 12px; }
+.agenda-day-card h2 a { color:var(--teal-dark); }
+.agenda-today { border:2px solid var(--teal-dark); }
+.agenda-weekday { text-align:center; font-weight:600; }
+.agenda-appointment { border-top:1px solid #d7e1dd; padding:12px 0; font-size:13px; }
+.agenda-appointment p { margin:6px 0; }
+.agenda-edit { display:block; margin-top:8px; }
+.agenda-appointment .badge { white-space:normal; }
+@media(max-width:1000px) { .agenda-month { grid-template-columns:minmax(0,1fr); } .agenda-weekday,.agenda-padding { display:none; } }

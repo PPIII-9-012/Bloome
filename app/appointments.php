@@ -85,14 +85,18 @@ function saveAppointment(int $actorId, ?int $id, array $source, bool $cancel = f
     } catch(Throwable $e) { if($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
 }
 
-function appointmentsBetween(string $from, string $until, ?int $limit = null): array
+function appointmentsBetween(string $from, string $until, ?int $limit = null, ?int $employeeId = null, ?string $status = null): array
 {
     $sql = 'SELECT a.*, c.first_name, c.last_name, u.name AS employee_name, e.appointment_color
         FROM appointments a JOIN clients c ON c.id=a.client_id
         JOIN employees e ON e.id=a.employee_id JOIN users u ON u.id=e.user_id
-        WHERE a.starts_at >= ? AND a.starts_at < ? ORDER BY a.starts_at, a.id';
+        WHERE a.starts_at >= ? AND a.starts_at < ?';
+    $params = [$from, $until];
+    if ($employeeId !== null) { $sql .= ' AND a.employee_id=?'; $params[]=$employeeId; }
+    if ($status !== null) { $sql .= ' AND a.status=?'; $params[]=$status; }
+    $sql .= ' ORDER BY a.starts_at, a.id';
     if ($limit !== null) $sql .= ' LIMIT ' . max(0, $limit);
-    $appointments = query($sql, [$from, $until])->fetchAll();
+    $appointments = query($sql, $params)->fetchAll();
     if (!$appointments) return [];
     $ids = array_column($appointments, 'id');
     $placeholders = implode(',', array_fill(0, count($ids), '?'));

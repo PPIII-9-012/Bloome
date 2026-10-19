@@ -117,9 +117,16 @@ try {
     } elseif ($page === 'agenda' && $method === 'GET') {
         $date = input($_GET, 'date', date('Y-m-d'));
         if (!validDate($date)) $date = date('Y-m-d');
-        $next = (new DateTimeImmutable($date))->modify('+1 day')->format('Y-m-d');
-        $appointments = appointmentsBetween($date, $next);
-        render('agenda', compact('user', 'page', 'date', 'appointments') + ['title' => 'Agenda']);
+        $mode = input($_GET, 'mode', 'day');
+        if (!in_array($mode, ['day','week','month'], true)) $mode='day';
+        $employeeFilter = input($_GET, 'employee');
+        $statusFilter = input($_GET, 'status');
+        $employees = query('SELECT e.id,u.name,e.active,u.active AS user_active FROM employees e JOIN users u ON u.id=e.user_id ORDER BY u.name,e.id')->fetchAll();
+        $filterError = ($employeeFilter !== '' && (!ctype_digit($employeeFilter) || !in_array($employeeFilter,array_map('strval',array_column($employees,'id')),true))) || ($statusFilter !== '' && !isset(appointmentStatuses()[$statusFilter]));
+        $period = agendaPeriod($date, $mode);
+        if ($filterError) http_response_code(422);
+        $appointments = $filterError ? [] : appointmentsBetween($period['from'], $period['until'], null, $employeeFilter === '' ? null : (int)$employeeFilter, $statusFilter === '' ? null : $statusFilter);
+        render('agenda', compact('user', 'page', 'date', 'mode', 'employees', 'employeeFilter', 'statusFilter', 'filterError', 'period', 'appointments') + ['title' => 'Agenda']);
     } else {
         http_response_code(404);
         render('message', compact('user', 'page') + ['title' => 'Página no encontrada', 'message' => 'Este enlace no está disponible. Podés volver al inicio.']);
