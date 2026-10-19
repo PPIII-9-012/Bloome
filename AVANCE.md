@@ -78,3 +78,12 @@ Corregidos formularios bloqueados por CSP, redirecciones del perfil, guardados p
 - 43 pruebas aisladas nuevas, incluida concurrencia con dos procesos; 138 pruebas previas aprobadas. Total: 181.
 - Respaldo local `.tools/backups/model-20261015-113100.sql`; tabla de auditoría instalada. Historial local de 3 citas intacto. Formulario revisado en navegador de escritorio.
 - Entrega en borrador: descansos y revisión del equipo pendientes. #12 permanece abierto. Detalles en docs/TURNOS.md.
+
+## 18 de octubre de 2026 — descansos y jornada partida (#38)
+
+- Rama `codex/38-descansos-jornada-partida`, desde develop con #35, #36, #37 y #39 integrados.
+- Descanso opcional por empleado y día; horario continuo si ambos campos están vacíos. Validación de límites, permisos y guardado semanal atómico.
+- Turnos que cruzan el descanso se rechazan al crear/reprogramar/reabrir; límites adyacentes permitidos. Historial conservado.
+- Migración repetible aplicada localmente tras respaldo `.tools/backups/model-20261018-210935.sql`; tres citas intactas.
+- 210 pruebas aprobadas: 15 unitarias, 47 empleados, 59 horarios, 51 turnos, 20 migración y 18 HTTP. Incluye proceso concurrente que espera un cambio de descanso y rechaza la reserva.
+- Revisión visual pendiente por bloqueo de acceso del navegador. Pruebas HTTP de campos y permisos aprobadas. Procedimiento en docs/DESCANSOS.md.

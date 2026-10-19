@@ -212,6 +212,26 @@ try {
     saveBusinessSchedule($bizDays);
     [, $cleanProfile]=req('employee&id='.$empId);
     testAssert(!str_contains($cleanProfile,'onclick=') && !str_contains($cleanProfile,'<script>') && str_contains($cleanProfile,'<details'),'Formularios funcionan con CSP sin JavaScript inline');
+    $split=$empScheduleData; $split[1]=['is_working'=>'1','start_time'=>'09:00','end_time'=>'18:00','break_start'=>'13:00','break_end'=>'15:00'];
+    [$status]=req('employee-schedule-save',['csrf'=>$schedToken,'user_id'=>$empId,'schedule'=>$split],true);
+    testAssert($status===303 && employeeSchedule($empId)[1]['break_start']==='13:00:00','Descanso guardado por HTTP');
+    foreach([['12:00','13:00',true],['15:00','16:00',true],['12:30','13:30',false],['13:00','14:00',false],['14:30','15:30',false],['12:00','16:00',false]] as [$from,$to,$allowed]) {
+        testAssert((checkAppointmentAvailability($empId,'2026-11-02 '.$from,'2026-11-02 '.$to)===null)===$allowed,'Jornada partida: '.$from.' a '.$to);
+    }
+    $saved=employeeSchedule($empId);
+    foreach([['break_end'=>''],['break_start'=>''],['break_start'=>'16:00'],['break_start'=>'09:00'],['break_end'=>'18:00'],['break_start'=>'25:00'],['break_start'=>['13:00']],['break_end'=>'12:00']] as $invalid) {
+        $bad=$split; $bad[1]=array_replace($bad[1],$invalid);
+        [$status]=req('employee-schedule-save',['csrf'=>$schedToken,'user_id'=>$empId,'schedule'=>$bad],true);
+        testAssert($status===422 && employeeSchedule($empId)===$saved,'Descanso inválido no guarda parcialmente: '.json_encode($invalid));
+    }
+    $continuous=$split; $continuous[1]['break_start']=''; $continuous[1]['break_end']='';
+    saveEmployeeSchedule($empId,$continuous);
+    testAssert(checkAppointmentAvailability($empId,'2026-11-02 13:00','2026-11-02 14:00')===null,'Eliminar descanso restaura jornada continua');
+    $closed=$split; $closed[1]['is_working']='0'; saveEmployeeSchedule($empId,$closed);
+    testAssert(employeeSchedule($empId)[1]['break_start']==='' && !employeeSchedule($empId)[1]['is_working'],'Día cerrado no conserva descanso');
+    saveEmployeeSchedule($empId,$split);
+    [, $splitBody]=req('employee&id='.$empId);
+    testAssert(str_contains($splitBody,'[break_start]') && str_contains($splitBody,'13:00'),'Perfil muestra controles y descanso guardado');
     // 16. Logout y verificación de permisos denegados a usuario profesional
     [, $lastBody] = req('holidays');
     req('logout', ['csrf' => extractToken($lastBody)], true);

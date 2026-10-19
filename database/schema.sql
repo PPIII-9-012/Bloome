@@ -316,6 +316,8 @@ CREATE TABLE IF NOT EXISTS employee_schedules (
     start_time TIME NULL,
     end_time TIME NULL,
     is_working BOOLEAN NOT NULL DEFAULT TRUE,
+    break_start TIME NULL,
+    break_end TIME NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT schedules_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE KEY employee_day (user_id, day_of_week),

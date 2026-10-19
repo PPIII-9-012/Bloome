@@ -34,7 +34,12 @@ try {
     migrateEmployees();
     // An interrupted preparation step must be safe to resume.
     db()->exec('ALTER TABLE appointments ADD employee_id_model BIGINT UNSIGNED NULL');
+    query("INSERT INTO employee_schedules(user_id,day_of_week,start_time,end_time,is_working) VALUES (1,1,'09:00','18:00',1)");
+    $scheduleBefore=query('SELECT id,user_id,day_of_week,start_time,end_time,is_working,created_at FROM employee_schedules')->fetchAll();
     migrateAppointmentModel();
+    modelCheck((int)query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='employee_schedules' AND COLUMN_NAME IN ('break_start','break_end')")->fetchColumn() === 2, 'Migración agrega campos de descanso al esquema anterior');
+    modelCheck(query('SELECT id,user_id,day_of_week,start_time,end_time,is_working,created_at FROM employee_schedules')->fetchAll()===$scheduleBefore && query('SELECT break_start FROM employee_schedules')->fetchColumn()===null,'Migración conserva jornada previa sin inventar descanso');
+    query("UPDATE employee_schedules SET break_start='13:00',break_end='15:00'");
     modelCheck(appointmentEmployeeTarget() === 'employees', 'La FK apunta a employees');
     modelCheck(query('SELECT id,client_id,starts_at,ends_at,status,notes,created_at FROM appointments ORDER BY id')->fetchAll() === $before, 'Conserva IDs, fechas, estados, notas e historial inactivo');
     modelCheck(array_map('intval', query('SELECT employee_id FROM appointments ORDER BY id')->fetchAll(PDO::FETCH_COLUMN)) === [501,702], 'Convierte IDs distintos de usuario y empleado');
@@ -43,6 +48,7 @@ try {
     $details = query('SELECT * FROM appointment_services ORDER BY id')->fetchAll();
     query('UPDATE services SET price=999,duration_minutes=90 WHERE id=1');
     migrateAppointmentModel();
+    modelCheck(query('SELECT break_start FROM employee_schedules')->fetchColumn()==='13:00:00','Repetir migración conserva descansos configurados');
     modelCheck(query('SELECT * FROM appointment_services ORDER BY id')->fetchAll() === $details, 'Repetir no duplica ni modifica las instantáneas');
     query("INSERT INTO appointments (client_id,employee_id,starts_at,ends_at,status) VALUES (1,501,'2026-01-01 12:00','2026-01-01 13:00','missed')");
     $id = db()->lastInsertId();

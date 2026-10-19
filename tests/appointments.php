@@ -2,6 +2,12 @@
 declare(strict_types=1);
 require dirname(__DIR__).'/app/bootstrap.php';
 require ROOT.'/app/employee-migration.php';
+if (($argv[1]??'')==='--break-worker') {
+    echo "ready\n"; flush();
+    try { saveAppointment(1,null,['client_id'=>'1','employee_id'=>'501','starts_at'=>'2026-11-10T14:00','status'=>'confirmed','notes'=>'break race','services'=>['1']]); echo 'saved'; }
+    catch(DomainException $e) { echo $e->getCode()===422?'unavailable':'error'; }
+    exit;
+}
 if (($argv[1]??'')==='--worker') {
     try { saveAppointment(1,null,['client_id'=>'1','employee_id'=>'501','starts_at'=>'2026-11-03T14:00','status'=>'confirmed','notes'=>'race','services'=>['1']]); echo 'saved'; }
     catch(DomainException $e) { echo $e->getCode()===409?'conflict':'error'; }
@@ -92,8 +98,29 @@ try {
     apCheck(apRequest('appointment-edit&id=999999')[0]===404,'ID inexistente devuelve 404');
     apRequest('logout',['csrf'=>$csrf]); [, $body]=apRequest('login'); apRequest('login',['csrf'=>apToken($body),'email'=>'professional@example.test','password'=>$loginPassword]);
     apCheck(apRequest('appointment-new')[0]===403 && apRequest('appointment-edit&id='.$id)[0]===403,'Profesional sin controles de escritura');
+    $historical=appointmentRecord($replacement);
+    query("UPDATE employee_schedules SET break_start='10:00',break_end='12:00' WHERE user_id=1 AND day_of_week=1");
+    apCheck(appointmentRecord($replacement)===$historical,'Nuevo descanso conserva citas históricas');
+    apReject(fn()=>saveAppointment(1,null,array_replace($data,['starts_at'=>'2026-11-09T10:00'])),422,'Crear turno dentro del descanso se rechaza');
+    apReject(fn()=>saveAppointment(1,$replacement,array_replace($data,['starts_at'=>'2026-11-09T09:45','version'=>appointmentVersion($historical)])),422,'Reprogramar cruzando descanso se rechaza');
+    apCheck(appointmentRecord($replacement)===$historical,'Reprogramación rechazada conserva cita y servicios');
+    saveAppointment(1,$replacement,array_replace($data,['notes'=>'historia conservada','version'=>appointmentVersion($historical)]));
+    apCheck(appointmentRecord($replacement)['notes']==='historia conservada','Notas históricas pueden editarse sin mover el turno');
+    // A booking must see a concurrent break update after waiting for the schedule row.
+    db()->beginTransaction();
+    query("UPDATE employee_schedules SET break_start='13:00',break_end='15:00' WHERE user_id=1 AND day_of_week=2");
+    $worker=proc_open([PHP_BINARY,__FILE__,'--break-worker'],[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$workerPipes,ROOT);
+    fclose($workerPipes[0]);
+    apCheck(trim(fgets($workerPipes[1]))==='ready','Proceso concurrente iniciado con horario bloqueado');
+    usleep(200000);
+    db()->commit();
+    $out=stream_get_contents($workerPipes[1]); $err=stream_get_contents($workerPipes[2]);
+    fclose($workerPipes[1]); fclose($workerPipes[2]);
+    apCheck(proc_close($worker)===0 && $out==='unavailable','Reserva concurrente ve el descanso confirmado y se rechaza');
+    apCheck((int)query("SELECT COUNT(*) FROM appointments WHERE notes='break race'")->fetchColumn()===0,'No se guarda cita parcial durante cambio concurrente');
     echo "\n$checks pruebas de turnos aprobadas.\n";
 } finally {
+    if(db()->inTransaction()) db()->rollBack();
     if(is_resource($server)) { proc_terminate($server); proc_close($server); }
     if(preg_match('/^bloome_test_appointments_[a-f0-9]{10}$/D',$database)) $root->exec("DROP DATABASE IF EXISTS `$database`");
 }
