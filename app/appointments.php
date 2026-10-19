@@ -51,6 +51,11 @@ function saveAppointment(int $actorId, ?int $id, array $source, bool $cancel = f
             }
             if ($duration<1 || $duration>1440) throw new DomainException('La duración total debe ser de 1 a 1440 minutos.',422);
             $end=$start->modify("+$duration minutes");
+            // Legacy appointments may have a recorded interval different from the
+            // catalog snapshot. Non-scheduling edits must preserve that interval.
+            if ($old && $start->format('Y-m-d H:i:s')===$old['starts_at'] && $serviceIds===array_map('intval',array_column($old['services'],'service_id'))) {
+                $end=new DateTimeImmutable($old['ends_at']);
+            }
             if ($end->format('Y-m-d')!==$start->format('Y-m-d')) throw new DomainException('El turno debe finalizar dentro del mismo día.',422);
             $startsAt=$start->format('Y-m-d H:i:s'); $endsAt=$end->format('Y-m-d H:i:s');
             $changed = !$old || (int)$old['employee_id'] !== (int)$employee || $old['starts_at'] !== $startsAt || $old['ends_at'] !== $endsAt || ($old['status']==='cancelled' && $status!=='cancelled');

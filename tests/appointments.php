@@ -118,6 +118,17 @@ try {
     fclose($workerPipes[1]); fclose($workerPipes[2]);
     apCheck(proc_close($worker)===0 && $out==='unavailable','Reserva concurrente ve el descanso confirmado y se rechaza');
     apCheck((int)query("SELECT COUNT(*) FROM appointments WHERE notes='break race'")->fetchColumn()===0,'No se guarda cita parcial durante cambio concurrente');
+    $legacyData=['client_id'=>'1','employee_id'=>'501','starts_at'=>'2026-11-12T10:00','status'=>'confirmed','notes'=>'antes','services'=>['1']];
+    $legacyId=saveAppointment(1,null,$legacyData);
+    query("UPDATE appointments SET ends_at='2026-11-12 11:00:00' WHERE id=?",[$legacyId]);
+    $legacy=appointmentRecord($legacyId);
+    saveAppointment(1,$legacyId,array_replace($legacyData,['notes'=>'solo notas','version'=>appointmentVersion($legacy)]));
+    apCheck(appointmentRecord($legacyId)['ends_at']===$legacy['ends_at'],'Editar notas conserva intervalo histórico distinto del detalle');
+    $legacy=appointmentRecord($legacyId);
+    saveAppointment(1,$legacyId,array_replace($legacyData,['starts_at'=>'2026-11-12T12:00','version'=>appointmentVersion($legacy)]));
+    apCheck(appointmentRecord($legacyId)['ends_at']==='2026-11-12 12:30:00','Reprogramar calcula la duración de servicios');
+    [, $agendaBody]=apRequest('agenda');
+    apCheck(!str_contains($agendaBody,'onclick=') && !str_contains($agendaBody,'$ 0,00') && !str_contains($agendaBody,'income-pill'),'Agenda no ofrece acciones simuladas ni ingresos ficticios');
     echo "\n$checks pruebas de turnos aprobadas.\n";
 } finally {
     if(db()->inTransaction()) db()->rollBack();
