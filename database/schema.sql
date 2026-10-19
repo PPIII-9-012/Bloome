@@ -269,3 +269,20 @@ CREATE TABLE IF NOT EXISTS payments (
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS business_settings (
+    id TINYINT UNSIGNED NOT NULL PRIMARY KEY,
+    center_name VARCHAR(120) NOT NULL DEFAULT 'Bloome',
+    legal_name VARCHAR(160) NULL,
+    email VARCHAR(190) NULL,
+    country VARCHAR(100) NOT NULL DEFAULT 'Argentina',
+    province VARCHAR(100) NULL,
+    address VARCHAR(190) NULL,
+    postal_code VARCHAR(20) NULL,
+    phone VARCHAR(30) NULL,
+    theme_color VARCHAR(7) NOT NULL DEFAULT '#6D5BD0',
+    logo_path VARCHAR(255) NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT business_settings_singleton CHECK (id = 1)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
