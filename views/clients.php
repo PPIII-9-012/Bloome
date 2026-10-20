@@ -53,11 +53,12 @@
                 <?php foreach ($clients as $client): ?>
                 <tr>
                     <td class="code-cell">#<?= e(str_pad((string)$client['id'], 4, '0', STR_PAD_LEFT)) ?></td>
-                    <td><strong><?= e($client['first_name']) ?></strong></td>
+                    <td><strong><a href="<?= e(url('client', ['id' => $client['id']])) ?>"><?= e($client['first_name']) ?></a></strong></td>
                     <td><?= e($client['last_name']) ?></td>
                     <td><?= e($client['phone'] ?: ($client['email'] ?: 'Sin teléfono')) ?></td>
                     <td>—</td>
                     <td style="text-align: right;">
+                        <a class="table-action-edit" href="<?= e(url('client', ['id' => $client['id']])) ?>" aria-label="Ver ficha de <?= e($client['first_name'] . ' ' . $client['last_name']) ?>"><span>Ver ficha</span></a>
                         <?php if (canEdit($user)): ?>
                         <a class="table-action-edit" href="<?= e(url('client-edit', ['id' => $client['id']])) ?>" aria-label="Editar a <?= e($client['first_name'] . ' ' . $client['last_name']) ?>">
                             <span>Editar</span>

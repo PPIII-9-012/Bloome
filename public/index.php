@@ -63,6 +63,9 @@ try {
     if (in_array($page, ['appointment-new','appointment-edit','appointment-cancel'], true)) {
         require ROOT . '/app/appointment-routes.php';
     }
+    if ($page === 'client') {
+        require ROOT . '/app/client-routes.php';
+    }
     if ($page === 'dashboard' && $method === 'GET') {
         $today = date('Y-m-d');
         $stats = [
@@ -78,8 +81,8 @@ try {
         $where = '';
         $params = [];
         if ($search !== '') {
-            $where = ' WHERE first_name LIKE ? OR last_name LIKE ? OR email LIKE ? OR phone LIKE ?';
-            $params = array_fill(0, 4, '%' . $search . '%');
+            $where = " WHERE first_name LIKE ? OR last_name LIKE ? OR email LIKE ? OR phone LIKE ? OR CONCAT_WS(' ', first_name, last_name) LIKE ? OR CONCAT_WS(' ', last_name, first_name) LIKE ?";
+            $params = array_fill(0, 6, '%' . $search . '%');
         }
         $count = (int) query('SELECT COUNT(*) FROM clients' . $where, $params)->fetchColumn();
         $pages = max(1, (int) ceil($count / 12));

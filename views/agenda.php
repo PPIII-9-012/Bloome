@@ -42,7 +42,7 @@ $weekdays=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 <?php foreach($byDay[$key]??[] as $appointment): ?>
 <article class="agenda-appointment">
 <strong><?= e(substr($appointment['starts_at'],11,5).'–'.substr($appointment['ends_at'],11,5)) ?></strong>
-<p><?= e($appointment['first_name'].' '.$appointment['last_name']) ?></p>
+<p><a href="<?= e(url('client',['id'=>$appointment['client_id']])) ?>"><?= e($appointment['first_name'].' '.$appointment['last_name']) ?></a></p>
 <p><?= e($appointment['service_name']) ?></p>
 <p><?= employeeSwatch($appointment['appointment_color']??null) ?> <?= e($appointment['employee_name']) ?></p>
 <span class="badge <?= e($appointment['status']) ?>"><?= e(appointmentStatuses()[$appointment['status']]) ?></span>
