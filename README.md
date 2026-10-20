@@ -74,6 +74,7 @@ Rutas iniciales: `/?page=login`, `/?page=dashboard`, `/?page=clients`, `/?page=c
 
 ```sh
 php tests/run.php
+php tests/finance.php   # modelo financiero; necesita MySQL y MYSQL_ROOT_PASSWORD
 ```
 
 Las pruebas unitarias no necesitan MySQL. Comprobar además con MySQL real: instalación, acceso, alta/edición, búsqueda, persistencia al recargar, agenda y permisos. El SQL se mantiene idempotente para instalar una base nueva; no sustituye un sistema de migraciones para futuras modificaciones de estructura.
