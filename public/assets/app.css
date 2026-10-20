@@ -1119,3 +1119,8 @@ button {
 .client-filters { margin:12px 0; }
 .client-summary { margin:8px 0 12px; font-size:14px; }
 @media(max-width:800px) { .client-profile { grid-template-columns:minmax(0,1fr); } }
+
+/* Listado de clientes: el texto oculto de la columna de acciones no debe ensanchar la página en móvil */
+.figma-table-card { position:relative; overflow-x:auto; }
+.figma-action-bar { flex-wrap:wrap; }
+.figma-action-bar .nav-tag-pending { display:inline-block; }

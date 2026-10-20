@@ -32,6 +32,7 @@ render('clients', ['user'=>['name'=>'Admin','role'=>'admin'],'page'=>'clients','
 $html = ob_get_clean();
 check(!str_contains($html,'<script>') && str_contains($html,'&lt;script&gt;'), 'Vista clientes bloquea HTML almacenado');
 check(str_contains($html,'client-edit') && str_contains($html,'name="csrf"'), 'Vista tiene edición y formulario de sesión protegido');
+check(!str_contains($html,'onclick=') && str_contains($html,'Próx.'), 'Listado no usa controladores inline bloqueados por CSP ni simula exportación');
 ob_start();
 render('client-form',['user'=>['name'=>'Admin','role'=>'admin'],'page'=>'client-new','title'=>'Nuevo cliente','client'=>array_fill_keys(['first_name','last_name','email','phone','birth_date','notes'],''),'errors'=>['first_name'=>'Requerido'],'id'=>0]);
 $html=ob_get_clean();
