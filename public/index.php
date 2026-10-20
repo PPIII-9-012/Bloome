@@ -354,7 +354,8 @@ try {
             echo agendaCsv($appointments);
             exit;
         }
-        render($page === 'agenda-print' ? 'agenda-print' : 'agenda', compact('user', 'page', 'date', 'mode', 'employees', 'employeeFilter', 'statusFilter', 'filterError', 'period', 'appointments') + ['title' => 'Agenda']);
+        $saleByAppointment = canEdit($user) ? activeSalesByAppointment(array_column($appointments, 'id')) : [];
+        render($page === 'agenda-print' ? 'agenda-print' : 'agenda', compact('user', 'page', 'date', 'mode', 'employees', 'employeeFilter', 'statusFilter', 'filterError', 'period', 'appointments', 'saleByAppointment') + ['title' => 'Agenda']);
 
     } elseif (
         $page === 'configuracion'

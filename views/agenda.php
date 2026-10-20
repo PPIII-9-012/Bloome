@@ -47,6 +47,7 @@ $weekdays=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 <p><?= employeeSwatch($appointment['appointment_color']??null) ?> <?= e($appointment['employee_name']) ?></p>
 <span class="badge <?= e($appointment['status']) ?>"><?= e(appointmentStatuses()[$appointment['status']]) ?></span>
 <?php if(canEdit($user)): ?><a class="agenda-edit" href="<?= e(url('appointment-edit',['id'=>$appointment['id'],'date'=>$date]+$filters)) ?>">Editar turno</a><?php endif; ?>
+<?php if(canEdit($user)): if(isset($saleByAppointment[(int)$appointment['id']])): ?><a class="agenda-edit" href="<?= e(url('sale',['id'=>$saleByAppointment[(int)$appointment['id']]])) ?>">Ver venta</a><?php elseif(!in_array($appointment['status'],['cancelled','missed'],true)): ?><a class="agenda-edit" href="<?= e(url('sale-new',['appointment'=>$appointment['id']])) ?>">Vender</a><?php endif; endif; ?>
 </article>
 <?php endforeach; ?>
 </section>

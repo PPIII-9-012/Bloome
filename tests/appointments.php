@@ -187,7 +187,7 @@ try {
     apCheck($status===200 && str_contains($body,'agenda-day'),'Vista inválida vuelve al día');
     query("INSERT INTO clients(id,first_name,last_name,phone,email) VALUES (78,'Sin','Citas','11 5555-0000','sin@example.test')");
     [$status,$body]=apRequest('client&id=1');
-    apCheck($status===200 && str_contains($body,'QA Cliente') && str_contains($body,'Sin datos de cobros') && str_contains($body,'Seña aplicada, abonado y saldo'),'Ficha muestra datos e historial sin inventar cobros');
+    apCheck($status===200 && str_contains($body,'QA Cliente') && !str_contains($body,'Ventas y saldo') && !str_contains($body,'Vender') && !str_contains($body,'Nueva venta'),'Ficha de profesional muestra datos e historial sin ventas ni cobros');
     apCheck(preg_match('#\d{2}/11/2026 · \d{2}:\d{2}–\d{2}:\d{2}#u',$body)===1 && str_contains($body,'Primero') && preg_match('#\d+ citas#',$body)===1,'Ficha lista las citas reales del cliente con resumen');
     apCheck(!str_contains($body,'Editar turno') && !str_contains($body,'client-edit') && !str_contains($body,'Nueva cita'),'Ficha de profesional no ofrece acciones de escritura');
     [$status,$body]=apRequest('client&id=78');
@@ -220,6 +220,18 @@ try {
     $cookiesBackup=$cookies; $cookies=[];
     apCheck(apRequest('agenda-export')[0]===303 && apRequest('agenda-print')[0]===303,'Exportación e impresión exigen sesión');
     $cookies=$cookiesBackup;
+    // Accesos a ventas desde la agenda y la ficha (#15)
+    [, $body]=apRequest('agenda'); apRequest('logout',['csrf'=>apToken($body)]); [, $body]=apRequest('login'); apRequest('login',['csrf'=>apToken($body),'email'=>'admin@example.test','password'=>$loginPassword]);
+    [$status,$body]=apRequest('client&id=1');
+    apCheck($status===200 && str_contains($body,'page=sale-new&amp;client=1') && str_contains($body,'Vender') && str_contains($body,'Este cliente todavía no tiene ventas registradas.'),'Ficha ofrece vender y avisa que no hay ventas');
+    $sold=query("SELECT id,starts_at FROM appointments WHERE client_id=1 AND status<>'cancelled' ORDER BY id LIMIT 1")->fetch();
+    [$status,$body]=apRequest('agenda&date='.substr($sold['starts_at'],0,10));
+    apCheck($status===200 && str_contains($body,'page=sale-new&amp;appointment='.$sold['id']) && str_contains($body,'Vender'),'La agenda ofrece vender cada cita vigente');
+    $soldId=createSale(1,['client_id'=>'1','appointment_id'=>(string)$sold['id'],'lines'=>[['service_id'=>'2','quantity'=>'1']]]);
+    [$status,$body]=apRequest('agenda&date='.substr($sold['starts_at'],0,10));
+    apCheck(str_contains($body,'page=sale&amp;id='.$soldId) && str_contains($body,'Ver venta') && !str_contains($body,'page=sale-new&amp;appointment='.$sold['id']),'Con venta vigente la agenda ofrece verla y no venderla de nuevo');
+    [$status,$body]=apRequest('client&id=1');
+    apCheck(str_contains($body,'Ventas y saldo') && str_contains($body,'Saldo pendiente:') && str_contains($body,'Venta #'.$soldId) && str_contains($body,'Sin cobrar'),'La ficha lista ventas con saldo y enlaza la venta de la cita');
     echo "\n$checks pruebas de turnos aprobadas.\n";
 } finally {
     if(db()->inTransaction()) db()->rollBack();

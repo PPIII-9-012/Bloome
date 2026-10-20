@@ -6,7 +6,7 @@ $statuses=appointmentStatuses();
 <p class="client-back"><a href="<?= e(url('clients')) ?>">← Volver a clientes</a></p>
 <div class="figma-action-bar client-actions">
 <?php if(canEdit($user)): ?><a class="figma-action-btn" href="<?= e(url('appointment-new',['client'=>$client['id']])) ?>"><span>Nueva cita</span></a><?php endif; ?>
-<span class="figma-action-btn disabled" aria-disabled="true"><span>Nueva venta</span> <small class="nav-tag-pending">Próx.</small></span>
+<?php if(canEdit($user)): ?><a class="figma-action-btn" href="<?= e(url('sale-new',['client'=>$client['id']])) ?>"><span>Nueva venta</span></a><?php endif; ?>
 <span class="figma-action-btn disabled" aria-disabled="true"><span>Enviar un SMS</span> <small class="nav-tag-pending">Próx.</small></span>
 <span class="figma-action-btn disabled" aria-disabled="true"><span>Enviar un Email</span> <small class="nav-tag-pending">Próx.</small></span>
 </div>
@@ -49,7 +49,7 @@ $statuses=appointmentStatuses();
 <td><?= e($appointment['service_name']) ?></td>
 <td><?= employeeSwatch($appointment['appointment_color']??null) ?> <?= e($appointment['employee_name']) ?></td>
 <td><span class="badge <?= e($appointment['status']) ?>"><?= e($statuses[$appointment['status']]??$appointment['status']) ?></span></td>
-<td class="muted">Sin datos de cobros</td>
+<td><?php if(isset($saleByAppointment[(int)$appointment['id']])): ?><a href="<?= e(url('sale',['id'=>$saleByAppointment[(int)$appointment['id']]])) ?>">Venta #<?= e($saleByAppointment[(int)$appointment['id']]) ?></a><?php elseif(canEdit($user) && !in_array($appointment['status'],['cancelled','missed'],true)): ?><a href="<?= e(url('sale-new',['appointment'=>$appointment['id']])) ?>">Vender</a><?php else: ?><span class="muted">—</span><?php endif; ?></td>
 <?php if(canEdit($user)): ?><td><a href="<?= e(url('appointment-edit',['id'=>$appointment['id'],'date'=>substr($appointment['starts_at'],0,10)])) ?>">Editar turno</a></td><?php endif; ?>
 </tr>
 <?php endforeach; ?>
@@ -62,6 +62,21 @@ $statuses=appointmentStatuses();
 <?php endif; ?>
 <?php endif; ?>
 </section>
-<section class="form-card"><h2>Ventas y saldo</h2><p class="muted">Seña aplicada, abonado y saldo estarán disponibles cuando se integren ventas y cobros. Hasta entonces no se muestran cifras.</p></section>
+<?php if(canEdit($user)): $pending=0; foreach($sales as $sale) if($sale['status']==='confirmed') $pending+=$sale['balance_cents']; ?>
+<section class="form-card" aria-labelledby="client-sales-title">
+<h2 id="client-sales-title">Ventas y saldo</h2>
+<?php if(!$sales): ?><p role="status">Este cliente todavía no tiene ventas registradas.</p>
+<?php else: ?>
+<p class="client-summary" role="status"><?= e(count($sales)) ?> <?= count($sales)===1?'venta':'ventas' ?> · Saldo pendiente: <?= e(moneyFormat($pending)) ?></p>
+<div class="employee-table-wrap"><table class="figma-table">
+<thead><tr><th scope="col">Venta</th><th scope="col">Fecha</th><th scope="col">Total</th><th scope="col">Cobrado</th><th scope="col">Saldo</th><th scope="col">Estado</th></tr></thead>
+<tbody>
+<?php foreach($sales as $sale): ?>
+<tr><td><a href="<?= e(url('sale',['id'=>$sale['id']])) ?>">#<?= e($sale['id']) ?></a></td><td><?= e((new DateTimeImmutable($sale['created_at']))->format('d/m/Y')) ?></td><td><?= e(moneyFormat($sale['total_cents'])) ?></td><td><?= e(moneyFormat($sale['paid_cents'])) ?></td><td><?= e($sale['collection']==='voided'?'—':moneyFormat($sale['balance_cents'])) ?></td><td><?= e(COLLECTION_LABELS[$sale['collection']]??$sale['collection']) ?></td></tr>
+<?php endforeach; ?>
+</tbody></table></div>
+<?php endif; ?>
+</section>
+<?php endif; ?>
 </div>
 </div>

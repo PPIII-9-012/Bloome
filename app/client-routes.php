@@ -21,5 +21,7 @@ if (!$errors) {
     if ($number>$pages) { $number=$pages; $history=clientAppointments((int)$id,$from===''?null:$from,$to===''?null:$to,$perPage,($number-1)*$perPage); }
 } else { http_response_code(422); }
 $pages=max(1,(int)ceil($history['total']/$perPage));
-render('client-profile',compact('user','page','client','id','from','to','errors','history','number','pages')+['title'=>$client['first_name'].' '.$client['last_name']]);
+$sales=canEdit($user)?clientSales((int)$id):[];
+$saleByAppointment=canEdit($user)?activeSalesByAppointment(array_column($history['rows'],'id')):[];
+render('client-profile',compact('user','page','client','id','from','to','errors','history','number','pages','sales','saleByAppointment')+['title'=>$client['first_name'].' '.$client['last_name']]);
 exit;
