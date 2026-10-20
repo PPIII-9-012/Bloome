@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title><?= e($title) ?> · Bloome</title>
     <link rel="stylesheet" href="/assets/app.css">
+    <link rel="stylesheet" href="/assets/sales.css">
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 </head>
 <body class="<?= empty($user) ? 'guest-view' : 'app-view' ?>">

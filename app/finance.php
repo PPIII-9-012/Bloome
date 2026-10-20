@@ -101,6 +101,56 @@ function recordCashMovement(int $actorId, string $kind, string $method, string $
 }
 
 /**
+ * Valida y calcula las líneas de una venta (sin guardar nada). Con $appointmentId, un servicio que ya estaba en esa cita
+ * conserva el precio acordado en la cita. Devuelve items (para guardar) y sum (totales en centavos).
+ */
+function prepareSaleLines(array $lines, string $role, string $appointmentId = ''): array
+{
+    if (!$lines || count($lines) > 30) throw new DomainException('El detalle debe tener de 1 a 30 líneas.', 422);
+    $defaultRate = rateToBasisPoints(getenv('SALES_DEFAULT_TAX_RATE') ?: '0') ?? 0;
+    $defaultIncluded = (getenv('SALES_TAX_INCLUDED') ?: '1') !== '0';
+    $computed = []; $items = [];
+    foreach ($lines as $line) {
+        if (!is_array($line)) throw new DomainException('Detalle de venta inválido.', 422);
+        $serviceId = (string)($line['service_id'] ?? '');
+        $quantity = (string)($line['quantity'] ?? '1');
+        if (!ctype_digit($quantity) || ($serviceId !== '' && !ctype_digit($serviceId))) throw new DomainException('Cantidad o servicio inválidos.', 422);
+        $service = $serviceId === '' ? false : query('SELECT id,name,price,active FROM services WHERE id=? FOR SHARE', [$serviceId])->fetch();
+        if ($serviceId !== '' && (!$service || !$service['active'])) throw new DomainException('Hay un servicio inexistente o inactivo.', 422);
+        $description = trim((string)($line['description'] ?? '')) ?: ($service['name'] ?? '');
+        if ($description === '' || textLength($description) > 190) throw new DomainException('Cada línea necesita una descripción de hasta 190 caracteres.', 422);
+        $unit = $service ? decimalToCents($service['price']) : null;
+        if ($service && $appointmentId !== '') {
+            $agreed = query('SELECT price FROM appointment_services WHERE appointment_id=? AND service_id=?', [$appointmentId, $serviceId])->fetchColumn();
+            if ($agreed !== false) $unit = decimalToCents($agreed);
+        }
+        if (isset($line['unit_price']) && trim((string)$line['unit_price']) !== '') {
+            if ($role !== 'admin') throw new DomainException('Solo administración puede modificar precios.', 403);
+            $unit = moneyToCents((string)$line['unit_price']);
+        }
+        if ($unit === null) throw new DomainException('Indicá un precio válido para cada línea.', 422);
+        $type = (string)($line['discount_type'] ?? 'none');
+        $rawDiscount = trim((string)($line['discount_value'] ?? ''));
+        $discountValue = match ($type) { 'amount' => moneyToCents($rawDiscount), 'percent' => rateToBasisPoints($rawDiscount), default => 0 };
+        if ($discountValue === null) throw new DomainException('El descuento es inválido.', 422);
+        $rate = isset($line['tax_rate']) && trim((string)$line['tax_rate']) !== '' ? rateToBasisPoints((string)$line['tax_rate']) : $defaultRate;
+        if ($rate === null) throw new DomainException('El impuesto debe estar entre 0 y 100 %.', 422);
+        $included = isset($line['tax_included']) ? (string)$line['tax_included'] !== '0' : $defaultIncluded;
+        $result = calcSaleLine($unit, (int)$quantity, ['type' => $type, 'value' => $discountValue], $rate, $included);
+        $computed[] = $result;
+        $items[] = [$service['id'] ?? null, $description, (int)$quantity, $unit, $result, $rate, $included];
+    }
+    return ['items' => $items, 'computed' => $computed, 'sum' => sumSaleLines($computed)];
+}
+
+/** Calcula una venta sin guardarla (vista previa del formulario). Lanza DomainException si hay datos inválidos. */
+function previewSale(int $actorId, array $lines, string $appointmentId = ''): array
+{
+    $actor = financeActor($actorId, ['admin', 'reception']);
+    return prepareSaleLines($lines, $actor['role'], ctype_digit($appointmentId) ? $appointmentId : '');
+}
+
+/**
  * Crea una venta confirmada. $data: client_id, employee_id?, appointment_id?, lines[].
  * Cada línea: service_id? , description?, quantity, unit_price? (solo admin), discount_type (none|amount|percent),
  * discount_value, tax_rate (% ; por defecto SALES_DEFAULT_TAX_RATE), tax_included? (por defecto SALES_TAX_INCLUDED, 1).
@@ -110,10 +160,12 @@ function createSale(int $actorId, array $data): int
 {
     $client = (string)($data['client_id'] ?? ''); $employee = (string)($data['employee_id'] ?? ''); $appointment = (string)($data['appointment_id'] ?? '');
     $lines = $data['lines'] ?? null;
+    $notes = trim((string)($data['notes'] ?? ''));
+    if (textLength($notes) > 500) throw new DomainException('Las observaciones admiten hasta 500 caracteres.', 422);
     if (!ctype_digit($client) || ($employee !== '' && !ctype_digit($employee)) || ($appointment !== '' && !ctype_digit($appointment)) || !is_array($lines) || !$lines || count($lines) > 30) {
         throw new DomainException('Revisá cliente, empleado y detalle de la venta (1 a 30 líneas).', 422);
     }
-    return financeTransaction(function () use ($actorId, $client, $employee, $appointment, $lines) {
+    return financeTransaction(function () use ($actorId, $client, $employee, $appointment, $lines, $notes) {
         $actor = financeActor($actorId, ['admin', 'reception']);
         if (!query('SELECT id FROM clients WHERE id=? FOR SHARE', [$client])->fetchColumn()) throw new DomainException('El cliente no existe.', 422);
         if ($employee !== '' && !query('SELECT id FROM employees WHERE id=? FOR SHARE', [$employee])->fetchColumn()) throw new DomainException('El empleado no existe.', 422);
@@ -121,39 +173,10 @@ function createSale(int $actorId, array $data): int
             $owner = query('SELECT client_id FROM appointments WHERE id=? FOR SHARE', [$appointment])->fetchColumn();
             if ($owner === false || (string)$owner !== $client) throw new DomainException('La cita no existe o no pertenece a este cliente.', 422);
         }
-        $defaultRate = rateToBasisPoints(getenv('SALES_DEFAULT_TAX_RATE') ?: '0') ?? 0;
-        $defaultIncluded = (getenv('SALES_TAX_INCLUDED') ?: '1') !== '0';
-        $computed = []; $items = [];
-        foreach ($lines as $line) {
-            if (!is_array($line)) throw new DomainException('Detalle de venta inválido.', 422);
-            $serviceId = (string)($line['service_id'] ?? '');
-            $quantity = (string)($line['quantity'] ?? '1');
-            if (!ctype_digit($quantity) || ($serviceId !== '' && !ctype_digit($serviceId))) throw new DomainException('Cantidad o servicio inválidos.', 422);
-            $service = $serviceId === '' ? false : query('SELECT id,name,price,active FROM services WHERE id=? FOR SHARE', [$serviceId])->fetch();
-            if ($serviceId !== '' && (!$service || !$service['active'])) throw new DomainException('Hay un servicio inexistente o inactivo.', 422);
-            $description = trim((string)($line['description'] ?? '')) ?: ($service['name'] ?? '');
-            if ($description === '' || textLength($description) > 190) throw new DomainException('Cada línea necesita una descripción de hasta 190 caracteres.', 422);
-            $unit = $service ? decimalToCents($service['price']) : null;
-            if (isset($line['unit_price']) && trim((string)$line['unit_price']) !== '') {
-                if ($actor['role'] !== 'admin') throw new DomainException('Solo administración puede modificar precios.', 403);
-                $unit = moneyToCents((string)$line['unit_price']);
-            }
-            if ($unit === null) throw new DomainException('Indicá un precio válido para cada línea.', 422);
-            $type = (string)($line['discount_type'] ?? 'none');
-            $rawDiscount = trim((string)($line['discount_value'] ?? ''));
-            $discountValue = match ($type) { 'amount' => moneyToCents($rawDiscount), 'percent' => rateToBasisPoints($rawDiscount), default => 0 };
-            if ($discountValue === null) throw new DomainException('El descuento es inválido.', 422);
-            $rate = isset($line['tax_rate']) && trim((string)$line['tax_rate']) !== '' ? rateToBasisPoints((string)$line['tax_rate']) : $defaultRate;
-            if ($rate === null) throw new DomainException('El impuesto debe estar entre 0 y 100 %.', 422);
-            $included = isset($line['tax_included']) ? (string)$line['tax_included'] !== '0' : $defaultIncluded;
-            $result = calcSaleLine($unit, (int)$quantity, ['type' => $type, 'value' => $discountValue], $rate, $included);
-            $computed[] = $result;
-            $items[] = [$service['id'] ?? null, $description, (int)$quantity, $unit, $result, $rate, $included];
-        }
-        $sum = sumSaleLines($computed);
+        ['items' => $items, 'sum' => $sum] = prepareSaleLines($lines, $actor['role'], $appointment);
         try {
-            query('INSERT INTO sales (client_id, employee_id, appointment_id, subtotal, discount_total, tax_total, total, created_by) VALUES (?,?,?,?,?,?,?,?)',
-                [$client, $employee ?: null, $appointment ?: null, centsToDecimal($sum['subtotal']), centsToDecimal($sum['discount']), centsToDecimal($sum['tax']), centsToDecimal($sum['total']), $actorId]);
+            query('INSERT INTO sales (client_id, employee_id, appointment_id, subtotal, discount_total, tax_total, total, notes, created_by) VALUES (?,?,?,?,?,?,?,?,?)',
+                [$client, $employee ?: null, $appointment ?: null, centsToDecimal($sum['subtotal']), centsToDecimal($sum['discount']), centsToDecimal($sum['tax']), centsToDecimal($sum['total']), $notes ?: null, $actorId]);
         } catch (PDOException $e) {
             if ($e->getCode() === '23000' && str_contains($e->getMessage(), 'one_active_sale_per_appointment')) throw new DomainException('Esta cita ya tiene una venta vigente. Anulala antes de crear otra.', 409);
             throw $e;
@@ -292,3 +315,44 @@ function voidSale(int $actorId, int $saleId, string $reason): void
         query("UPDATE sales SET status='voided', voided_at=NOW(), voided_by=?, void_reason=? WHERE id=?", [$actorId, $reason, $saleId]);
     });
 }
+
+/** Venta con cliente, empleado, cita, detalle y saldo; false si no existe. */
+function saleRecord(int $saleId): array|false
+{
+    $sale = query('SELECT s.*, c.first_name, c.last_name, u.name AS employee_name, creator.name AS created_by_name
+        FROM sales s JOIN clients c ON c.id=s.client_id
+        LEFT JOIN employees e ON e.id=s.employee_id LEFT JOIN users u ON u.id=e.user_id
+        JOIN users creator ON creator.id=s.created_by WHERE s.id=?', [$saleId])->fetch();
+    if (!$sale) return false;
+    $sale['items'] = query('SELECT * FROM sale_items WHERE sale_id=? ORDER BY id', [$saleId])->fetchAll();
+    $sale['balance'] = saleBalance($saleId);
+    return $sale;
+}
+
+/** Ventas de un cliente, más recientes primero, con total, cobrado y saldo en centavos. */
+function clientSales(int $clientId, int $limit = 50): array
+{
+    $rows = query('SELECT s.id, s.status, s.total, s.created_at, s.appointment_id,
+            COALESCE((SELECT SUM(pa.amount) FROM payment_allocations pa JOIN payments p ON p.id=pa.payment_id
+                WHERE pa.sale_id=s.id AND pa.released_at IS NULL AND p.status=\'paid\'),0) AS paid
+        FROM sales s WHERE s.client_id=? ORDER BY s.created_at DESC, s.id DESC LIMIT ' . max(1, $limit), [$clientId])->fetchAll();
+    foreach ($rows as &$row) {
+        $row['total_cents'] = decimalToCents($row['total']); $row['paid_cents'] = decimalToCents($row['paid']);
+        $row['balance_cents'] = $row['total_cents'] - $row['paid_cents'];
+        $row['collection'] = $row['status'] === 'voided' ? 'voided' : collectionStatus($row['total_cents'], $row['paid_cents']);
+    }
+    return $rows;
+}
+
+/** [appointment_id => sale_id] de las ventas vigentes de esas citas. */
+function activeSalesByAppointment(array $appointmentIds): array
+{
+    $appointmentIds = array_values(array_unique(array_map('intval', $appointmentIds)));
+    if (!$appointmentIds) return [];
+    $placeholders = implode(',', array_fill(0, count($appointmentIds), '?'));
+    $map = [];
+    foreach (query("SELECT appointment_id, id FROM sales WHERE status='confirmed' AND appointment_id IN ($placeholders)", $appointmentIds)->fetchAll() as $row) $map[(int)$row['appointment_id']] = (int)$row['id'];
+    return $map;
+}
+
+const COLLECTION_LABELS = ['unpaid' => 'Sin cobrar', 'partial' => 'Cobro parcial', 'paid' => 'Cobrada', 'voided' => 'Anulada'];
