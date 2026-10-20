@@ -23,6 +23,7 @@ $draft=$draftToken!==''?appointmentDraft($draftToken):null;
 if ($draftToken!=='' && (!$draft || $draft['id']!==$id)) $deny(410,'El borrador venció o no corresponde a este turno. Volvé a la agenda.');
 if ($draft) { $formData=$draft['form']; $version=$draft['version']; $context=$draft['context']; }
 if ($new && !$draft) {
+    if (ctype_digit(input($_GET,'client')) && query('SELECT id FROM clients WHERE id=?',[input($_GET,'client')])->fetchColumn()) $formData['client_id']=input($_GET,'client');
     if (isset($context['date'])) $formData['starts_at']=$context['date'].'T09:00';
     if (isset($context['employee']) && query('SELECT e.id FROM employees e JOIN users u ON u.id=e.user_id WHERE e.id=? AND e.active=1 AND u.active=1',[$context['employee']])->fetchColumn()) $formData['employee_id']=$context['employee'];
 }
