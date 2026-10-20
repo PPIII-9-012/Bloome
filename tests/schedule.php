@@ -232,6 +232,12 @@ try {
     saveEmployeeSchedule($empId,$split);
     [, $splitBody]=req('employee&id='.$empId);
     testAssert(str_contains($splitBody,'[break_start]') && str_contains($splitBody,'13:00'),'Perfil muestra controles y descanso guardado');
+    $oldForm=$split; unset($oldForm[1]['break_start'],$oldForm[1]['break_end']);
+    saveEmployeeSchedule($empId,$oldForm);
+    testAssert(employeeSchedule($empId)[1]['break_start']==='13:00:00','Formulario antiguo conserva descanso existente');
+    $oldForm[1]['end_time']='14:00';
+    try { saveEmployeeSchedule($empId,$oldForm); throw new RuntimeException('Se aceptó jornada incompatible'); }
+    catch(DomainException $e) { testAssert($e->getCode()===422 && employeeSchedule($empId)[1]['end_time']==='18:00:00','Jornada incompatible no borra descanso ni guarda cambios'); }
     // 16. Logout y verificación de permisos denegados a usuario profesional
     [, $lastBody] = req('holidays');
     req('logout', ['csrf' => extractToken($lastBody)], true);

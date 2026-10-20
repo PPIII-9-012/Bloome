@@ -50,9 +50,23 @@ function validateSchedule(mixed $source,string $flag): array {
     return $result;
 }
 function saveSchedule(?int $userId,mixed $source): void {
-    $rows=validateSchedule($source,$userId===null?'is_open':'is_working');
     $pdo=db(); $pdo->beginTransaction();
     try {
+        if ($userId!==null && is_array($source)) {
+            $existing=query('SELECT * FROM employee_schedules WHERE user_id=? ORDER BY day_of_week FOR UPDATE',[$userId])->fetchAll();
+            foreach($existing as $dayRow) {
+                $day=(int)$dayRow['day_of_week'];
+                if (!isset($source[$day]) || !is_array($source[$day])) continue;
+                $hasStart=array_key_exists('break_start',$source[$day]);
+                $hasEnd=array_key_exists('break_end',$source[$day]);
+                if ($hasStart!==$hasEnd) throw new DomainException('Reabrí el formulario: faltan campos del descanso.',422);
+                if (!$hasStart) {
+                    $source[$day]['break_start']=$dayRow['break_start']??'';
+                    $source[$day]['break_end']=$dayRow['break_end']??'';
+                }
+            }
+        }
+        $rows=validateSchedule($source,$userId===null?'is_open':'is_working');
         foreach($rows as $day=>[$start,$end,$enabled]) {
             if ($userId===null) query('INSERT INTO business_schedules (day_of_week,start_time,end_time,is_open) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE start_time=VALUES(start_time),end_time=VALUES(end_time),is_open=VALUES(is_open)',[$day,$start,$end,$enabled]);
             else query('INSERT INTO employee_schedules (user_id,day_of_week,start_time,end_time,is_working,break_start,break_end) VALUES (?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE start_time=VALUES(start_time),end_time=VALUES(end_time),is_working=VALUES(is_working),break_start=VALUES(break_start),break_end=VALUES(break_end)',[$userId,$day,$start,$end,$enabled,$rows[$day][3],$rows[$day][4]]);
