@@ -1,0 +1,23 @@
+/* Ventas (tarjeta #15) */
+.sale-lines select,.sale-lines input{width:100%;min-width:0;padding:10px 12px;border:1px solid #d1d5db;border-radius:var(--radius-sm);background:#fff;font-size:14px;color:inherit}
+.sale-lines select:focus,.sale-lines input:focus{outline:none;border-color:var(--teal-dark);box-shadow:0 0 0 3px rgba(14,61,62,.1)}
+.sale-lines td:first-child{min-width:19rem}
+.sale-lines td:nth-child(2){min-width:5.5rem}
+.sale-lines td:nth-child(3){min-width:10.5rem}
+.sale-lines td:nth-child(4){min-width:8rem}
+.sale-totals{margin:1rem 0;padding:1rem;border-radius:12px;background:#0e3d3e;color:#fff}
+.sale-totals dl,.sale-totals-list,.sale-meta{display:grid;grid-template-columns:max-content 1fr;gap:.35rem 1.25rem;margin:0}
+.sale-totals dd,.sale-totals-list dd,.sale-meta dd{margin:0;text-align:right}
+.sale-meta dd{text-align:left}
+.sale-totals-list{margin-top:1rem;justify-content:end}
+.sale-totals .muted{color:#d9e7e7;margin:.75rem 0 0}
+@media (max-width:640px){.sale-totals dl,.sale-totals-list,.sale-meta{grid-template-columns:1fr 1fr}}
+@media (max-width:640px){
+.sale-lines,.sale-lines tbody{display:block}
+.sale-lines thead{display:none}
+.sale-lines tr{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;padding:.75rem;border-bottom:1px solid #e5e7eb}
+.sale-lines td{display:block;min-width:0!important;padding:0;border:0}
+.sale-lines td:first-child{grid-column:1/-1}
+.sale-lines td::before{content:attr(data-label);display:block;margin-bottom:.25rem;font-size:12px;font-weight:600;color:var(--text-primary)}
+.sale-lines td:nth-child(2) input{max-width:none}
+}

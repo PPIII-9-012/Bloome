@@ -28,7 +28,7 @@ incluido da total 2.700 con impuesto 468,60.
 
 | Tabla | Contenido |
 |---|---|
-| `sales` | Cliente, empleado y cita opcionales; estado `confirmed` o `voided`; subtotal, descuento, impuesto y total. Anulación con motivo, usuario y fecha (la base lo exige). Una cita no puede tener dos ventas vigentes. |
+| `sales` | Cliente, empleado y cita opcionales, observaciones; estado `confirmed` o `voided`; subtotal, descuento, impuesto y total. Anulación con motivo, usuario y fecha (la base lo exige). Una cita no puede tener dos ventas vigentes. |
 | `sale_items` | Servicio, descripción, cantidad, precio unitario, descuento, tasa, y neto/impuesto/total históricos. |
 | `payments` | Dinero recibido. `kind`: `payment` (de una venta) o `deposit` (seña de una cita). `idempotency_key` único. Estado `paid` o `refunded`. |
 | `payment_allocations` | A qué se aplica un cobro: una venta **o** una cita (la base lo exige). `released_at` conserva la historia cuando se anula. |

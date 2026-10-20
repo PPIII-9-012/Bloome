@@ -19,6 +19,8 @@ function migrateFinanceModel(): void
         if (preg_match('/^\s*(?:--[^\n]*\n\s*)*CREATE TABLE IF NOT EXISTS (sales|sale_items|cash_sessions|cash_movements)\b/', $statement)) $pdo->exec($statement);
     }
 
+    if (!$hasColumn('sales', 'notes')) $pdo->exec('ALTER TABLE sales ADD COLUMN notes VARCHAR(500) NULL AFTER total');
+
     foreach ([
         'kind' => "ADD COLUMN kind ENUM('payment','deposit') NOT NULL DEFAULT 'payment' AFTER status",
         'idempotency_key' => 'ADD COLUMN idempotency_key CHAR(64) NULL AFTER kind',
