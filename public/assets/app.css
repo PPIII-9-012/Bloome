@@ -1081,3 +1081,24 @@ button {
 .agenda-edit { display:block; margin-top:8px; }
 .agenda-appointment .badge { white-space:normal; }
 @media(max-width:1000px) { .agenda-month { grid-template-columns:minmax(0,1fr); } .agenda-weekday,.agenda-padding { display:none; } }
+
+/* Agenda: vista imprimible y exportación (#26) */
+.agenda-output-links { margin:14px 0; font-size:14px; }
+.agenda-print-actions { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:16px; }
+.agenda-print h1 { margin:0 0 8px; }
+.agenda-print-scroll { overflow-x:auto; }
+.agenda-print-table { width:100%; min-width:560px; border-collapse:collapse; background:white; font-size:14px; }
+.agenda-print-table th, .agenda-print-table td { border:1px solid #d7e1dd; padding:8px 10px; text-align:left; vertical-align:top; overflow-wrap:break-word; }
+.agenda-print-table thead th { background:#eef3f1; }
+.agenda-print-day th { background:#f6f8f7; font-weight:700; }
+@media print {
+    .figma-topbar, .figma-sidebar, .skip-link, .no-print { display:none !important; }
+    body, .app-view { background:white !important; }
+    .figma-app-container { margin:0 !important; min-height:0 !important; display:block !important; }
+    main, #main { margin:0 !important; padding:0 !important; max-width:none !important; width:100% !important; }
+    .figma-footer { display:none !important; }
+    .agenda-print-scroll { overflow:visible; }
+    .agenda-print-table { min-width:0; }
+    .agenda-print-table thead { display:table-header-group; }
+    .agenda-print-table tr { break-inside:avoid; }
+}

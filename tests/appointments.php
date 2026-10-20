@@ -181,6 +181,24 @@ try {
     apCheck(apRequest('agenda&employee=999999')[0]===422 && apRequest('agenda&status=invalid')[0]===422,'Filtros desconocidos se rechazan en servidor');
     [$status,$body]=apRequest('agenda&date=2026-11-12&mode=unknown');
     apCheck($status===200 && str_contains($body,'agenda-day'),'Vista inválida vuelve al día');
+    query("INSERT INTO clients(id,first_name,last_name) VALUES (77,'=HYPERLINK(\"http://x.test\")','Fórmula; \"Ñandú\"')");
+    saveAppointment(1,null,['client_id'=>'77','employee_id'=>'501','starts_at'=>'2026-11-20T10:00','status'=>'confirmed','notes'=>'privada','services'=>['1']]);
+    [$status,$body]=apRequest('agenda-export&date=2026-11-20&mode=day&employee=501&status=confirmed');
+    apCheck($status===200 && str_starts_with($body,"\xEF\xBB\xBFFecha;Inicio;Fin;Cliente;Servicios;Empleado;Estado\r\n"),'CSV UTF-8 con encabezados en español');
+    apCheck(str_contains($body,'20/11/2026;10:00;10:30;"\'=HYPERLINK(""http://x.test"") Fórmula; ""Ñandú""";Primero;"QA admin";Confirmada') && !str_contains($body,'privada'),'CSV protege fórmulas, escapa separadores y omite notas');
+    apCheck(substr_count(rtrim($body),"\r\n")===1,'CSV exporta solo lo consultado');
+    [$status,$body]=apRequest('agenda-export&date=2026-11-12&mode=week&employee=501&status=cancelled');
+    apCheck($status===200 && substr_count(rtrim($body),"\r\n")===0,'CSV de período vacío contiene solo encabezados');
+    apCheck(apRequest('agenda-export&employee=999999')[0]===422 && apRequest('agenda-export&status=invalid')[0]===422,'Exportación rechaza filtros inválidos');
+    [$status,$body]=apRequest('agenda-print&date=2026-11-20&mode=week&employee=501&status=confirmed');
+    apCheck($status===200 && str_contains($body,'agenda-print-table') && str_contains($body,'20/11/2026') && str_contains($body,'=HYPERLINK(&quot;http://x.test&quot;)') && !str_contains($body,'privada'),'Vista imprimible muestra turnos escapados y sin notas');
+    apCheck(str_contains($body,'agenda-export&amp;mode=week&amp;employee=501&amp;status=confirmed&amp;date=2026-11-20'),'Vista imprimible conserva filtros hacia el CSV');
+    [$status,$body]=apRequest('agenda-print&date=2026-11-12&mode=week&employee=501&status=cancelled');
+    apCheck($status===200 && str_contains($body,'No hay turnos para este período y estos filtros.'),'Vista imprimible vacía informa alcance');
+    apCheck(apRequest('agenda-print&status=invalid')[0]===422,'Vista imprimible rechaza filtros inválidos');
+    $cookiesBackup=$cookies; $cookies=[];
+    apCheck(apRequest('agenda-export')[0]===303 && apRequest('agenda-print')[0]===303,'Exportación e impresión exigen sesión');
+    $cookies=$cookiesBackup;
     echo "\n$checks pruebas de turnos aprobadas.\n";
 } finally {
     if(db()->inTransaction()) db()->rollBack();

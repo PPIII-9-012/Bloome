@@ -47,4 +47,8 @@ check($period['until']==='2027-01-01' && $period['previous']==='2026-12-30','Dí
 check(agendaContext(['date'=>'bad','mode'=>'javascript:','employee'=>'-1','status'=>'bad','return'=>'https://example.test'])===[],'Contexto de retorno acepta solo parámetros válidos de agenda');
 $_SESSION['appointment_drafts']['expired']=['created'=>time()-3601];
 check(appointmentDraft('expired')===null && appointmentDraft('missing')===null,'Borradores vencidos o inexistentes se rechazan');
+check(csvSafeCell('=1+1')==="'=1+1" && csvSafeCell('+54')==="'+54" && csvSafeCell('-x')==="'-x" && csvSafeCell('@a')==="'@a" && csvSafeCell("\tx")==="'\tx" && csvSafeCell('Ana')==='Ana','CSV neutraliza celdas que parecen fórmulas');
+$csv=agendaCsv([['starts_at'=>'2026-11-02 10:00:00','ends_at'=>'2026-11-02 10:50:00','first_name'=>'Ñ=a','last_name'=>'"B";','service_name'=>"Uno\nDos",'employee_name'=>'@Emp','status'=>'confirmed']]);
+check(str_starts_with($csv,"\xEF\xBB\xBFFecha;") && str_contains($csv,'02/11/2026;10:00;10:50;"Ñ=a ""B"";";"Uno'."\r\n".'Dos";\'@Emp;Confirmada'),'CSV escapa comillas, saltos y separadores');
+check(agendaCsv([])==="\xEF\xBB\xBFFecha;Inicio;Fin;Cliente;Servicios;Empleado;Estado\r\n",'CSV vacío conserva encabezados');
 echo "\n$passed pruebas aprobadas.\n";

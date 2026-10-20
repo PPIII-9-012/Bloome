@@ -126,19 +126,17 @@ try {
             http_response_code(422);
         }
         render('client-form', compact('user', 'page', 'client', 'errors', 'id','draftToken','clientBackUrl') + ['title' => $page === 'client-new' ? 'Nuevo cliente' : 'Editar cliente']);
-    } elseif ($page === 'agenda' && $method === 'GET') {
-        $date = input($_GET, 'date', date('Y-m-d'));
-        if (!validDate($date)) $date = date('Y-m-d');
-        $mode = input($_GET, 'mode', 'day');
-        if (!in_array($mode, ['day','week','month'], true)) $mode='day';
-        $employeeFilter = input($_GET, 'employee');
-        $statusFilter = input($_GET, 'status');
-        $employees = query('SELECT e.id,u.name,e.active,u.active AS user_active FROM employees e JOIN users u ON u.id=e.user_id ORDER BY u.name,e.id')->fetchAll();
-        $filterError = ($employeeFilter !== '' && (!ctype_digit($employeeFilter) || !in_array($employeeFilter,array_map('strval',array_column($employees,'id')),true))) || ($statusFilter !== '' && !isset(appointmentStatuses()[$statusFilter]));
-        $period = agendaPeriod($date, $mode);
+    } elseif (in_array($page, ['agenda','agenda-print','agenda-export'], true) && $method === 'GET') {
+        extract(agendaView($_GET));
         if ($filterError) http_response_code(422);
-        $appointments = $filterError ? [] : appointmentsBetween($period['from'], $period['until'], null, $employeeFilter === '' ? null : (int)$employeeFilter, $statusFilter === '' ? null : $statusFilter);
-        render('agenda', compact('user', 'page', 'date', 'mode', 'employees', 'employeeFilter', 'statusFilter', 'filterError', 'period', 'appointments') + ['title' => 'Agenda']);
+        if ($page === 'agenda-export') {
+            if ($filterError) { render('message', compact('user', 'page') + ['title' => 'No se pudo exportar', 'message' => 'Los filtros no son válidos. Volvé a la agenda y elegí un empleado y un estado de la lista.']); exit; }
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="agenda-' . $period['from'] . '-' . $mode . '.csv"');
+            echo agendaCsv($appointments);
+            exit;
+        }
+        render($page === 'agenda-print' ? 'agenda-print' : 'agenda', compact('user', 'page', 'date', 'mode', 'employees', 'employeeFilter', 'statusFilter', 'filterError', 'period', 'appointments') + ['title' => 'Agenda']);
     } else {
         http_response_code(404);
         render('message', compact('user', 'page') + ['title' => 'Página no encontrada', 'message' => 'Este enlace no está disponible. Podés volver al inicio.']);

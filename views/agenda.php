@@ -9,6 +9,7 @@ $weekdays=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 ?>
 <div class="employee-heading"><h1>Agenda</h1><p>Turnos del <?= e($first->format('d/m/Y')) ?> al <?= e($until->modify('-1 day')->format('d/m/Y')) ?> · <?= count($appointments) ?> resultados</p></div>
 <?php if (canEdit($user)): ?><div class="figma-action-bar"><a class="figma-action-btn" href="<?= e(url('appointment-new',$filters+['date'=>$date])) ?>">Nuevo turno</a></div><?php endif; ?>
+<?php if(!$filterError): ?><p class="agenda-output-links"><a href="<?= e(url('agenda-print',$filters+['date'=>$date])) ?>">Vista para imprimir</a> · <a href="<?= e(url('agenda-export',$filters+['date'=>$date])) ?>">Exportar CSV</a></p><?php endif; ?>
 <div class="figma-filters-card">
 <form method="get" class="agenda-controls">
 <input type="hidden" name="page" value="agenda">
