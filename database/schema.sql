@@ -210,66 +210,141 @@ CREATE TABLE IF NOT EXISTS expenses (
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci;
 
+-- Modelo financiero (tarjeta #14). Importes DECIMAL(12,2), con cálculos hechos en centavos (app/money.php).
+
+CREATE TABLE IF NOT EXISTS sales (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    client_id BIGINT UNSIGNED NOT NULL,
+    employee_id BIGINT UNSIGNED NULL,
+    appointment_id BIGINT UNSIGNED NULL,
+    status ENUM('confirmed','voided') NOT NULL DEFAULT 'confirmed',
+    subtotal DECIMAL(12,2) NOT NULL,
+    discount_total DECIMAL(12,2) NOT NULL DEFAULT 0,
+    tax_total DECIMAL(12,2) NOT NULL DEFAULT 0,
+    total DECIMAL(12,2) NOT NULL,
+    created_by BIGINT UNSIGNED NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    voided_at TIMESTAMP NULL,
+    voided_by BIGINT UNSIGNED NULL,
+    void_reason VARCHAR(255) NULL,
+    active_appointment_key BIGINT UNSIGNED GENERATED ALWAYS AS (IF(status='confirmed', appointment_id, NULL)) STORED,
+    CONSTRAINT sales_client FOREIGN KEY (client_id) REFERENCES clients(id),
+    CONSTRAINT sales_employee FOREIGN KEY (employee_id) REFERENCES employees(id),
+    CONSTRAINT sales_appointment FOREIGN KEY (appointment_id) REFERENCES appointments(id),
+    CONSTRAINT sales_creator FOREIGN KEY (created_by) REFERENCES users(id),
+    CONSTRAINT sales_voider FOREIGN KEY (voided_by) REFERENCES users(id),
+    CONSTRAINT valid_sale_amounts CHECK (subtotal >= 0 AND discount_total >= 0 AND tax_total >= 0 AND total >= 0),
+    CONSTRAINT valid_sale_void CHECK ((status = 'voided') = (voided_at IS NOT NULL AND voided_by IS NOT NULL AND void_reason IS NOT NULL)),
+    UNIQUE KEY one_active_sale_per_appointment (active_appointment_key),
+    INDEX sales_client_date (client_id, created_at),
+    INDEX sales_date (created_at),
+    INDEX sales_employee (employee_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS sale_items (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    sale_id BIGINT UNSIGNED NOT NULL,
+    service_id BIGINT UNSIGNED NULL,
+    description VARCHAR(190) NOT NULL,
+    quantity SMALLINT UNSIGNED NOT NULL,
+    unit_price DECIMAL(12,2) NOT NULL,
+    discount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    tax_rate DECIMAL(5,2) NOT NULL DEFAULT 0,
+    tax_included BOOLEAN NOT NULL DEFAULT TRUE,
+    net_amount DECIMAL(12,2) NOT NULL,
+    tax_amount DECIMAL(12,2) NOT NULL,
+    total_amount DECIMAL(12,2) NOT NULL,
+    CONSTRAINT sale_items_sale FOREIGN KEY (sale_id) REFERENCES sales(id),
+    CONSTRAINT sale_items_service FOREIGN KEY (service_id) REFERENCES services(id),
+    CONSTRAINT valid_item_amounts CHECK (quantity >= 1 AND unit_price >= 0 AND discount >= 0 AND tax_rate BETWEEN 0 AND 100 AND net_amount >= 0 AND tax_amount >= 0 AND total_amount >= 0),
+    INDEX sale_items_sale (sale_id),
+    INDEX sale_items_service (service_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS payments (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     client_id BIGINT UNSIGNED NOT NULL,
     amount DECIMAL(12,2) NOT NULL,
-    payment_method ENUM(
-        'cash',
-        'debit_card',
-        'credit_card',
-        'transfer',
-        'other'
-    ) NOT NULL DEFAULT 'cash',
-    status ENUM(
-        'pending',
-        'paid',
-        'refunded',
-        'cancelled'
-    ) NOT NULL DEFAULT 'pending',
+    payment_method ENUM('cash','debit_card','credit_card','transfer','other') NOT NULL DEFAULT 'cash',
+    status ENUM('pending','paid','refunded','cancelled') NOT NULL DEFAULT 'pending',
+    kind ENUM('payment','deposit') NOT NULL DEFAULT 'payment',
+    idempotency_key CHAR(64) NULL,
+    created_by BIGINT UNSIGNED NULL,
     paid_at TIMESTAMP NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT payments_client
-        FOREIGN KEY (client_id)
-        REFERENCES clients(id),
-
-    CONSTRAINT valid_payment_amount
-        CHECK (amount > 0),
-
+    refunded_at TIMESTAMP NULL,
+    refunded_by BIGINT UNSIGNED NULL,
+    CONSTRAINT payments_client FOREIGN KEY (client_id) REFERENCES clients(id),
+    CONSTRAINT payments_creator FOREIGN KEY (created_by) REFERENCES users(id),
+    CONSTRAINT payments_refunder FOREIGN KEY (refunded_by) REFERENCES users(id),
+    CONSTRAINT valid_payment_amount CHECK (amount > 0),
+    UNIQUE KEY payments_idempotency (idempotency_key),
     INDEX payments_client (client_id),
     INDEX payments_date (paid_at),
     INDEX payments_status (status)
-) ENGINE=InnoDB
-  DEFAULT CHARSET=utf8mb4
-  COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-  CREATE TABLE IF NOT EXISTS payment_allocations (
+-- Un cobro se aplica a una venta o, si es una seña, a una cita. released_at conserva la historia al anular.
+CREATE TABLE IF NOT EXISTS payment_allocations (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-
     payment_id BIGINT UNSIGNED NOT NULL,
-    appointment_id BIGINT UNSIGNED NOT NULL,
+    appointment_id BIGINT UNSIGNED NULL,
+    sale_id BIGINT UNSIGNED NULL,
     amount DECIMAL(12,2) NOT NULL,
-
-    CONSTRAINT payment_allocations_payment
-        FOREIGN KEY (payment_id)
-        REFERENCES payments(id)
-        ON DELETE CASCADE,
-
-    CONSTRAINT payment_allocations_appointment
-        FOREIGN KEY (appointment_id)
-        REFERENCES appointments(id),
-
-    CONSTRAINT valid_allocation_amount
-        CHECK (amount > 0),
-
-    UNIQUE (payment_id, appointment_id),
-
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    released_at TIMESTAMP NULL,
+    CONSTRAINT payment_allocations_payment FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE,
+    CONSTRAINT payment_allocations_appointment FOREIGN KEY (appointment_id) REFERENCES appointments(id),
+    CONSTRAINT payment_allocations_sale FOREIGN KEY (sale_id) REFERENCES sales(id),
+    CONSTRAINT valid_allocation_amount CHECK (amount > 0),
+    CONSTRAINT valid_allocation_target CHECK ((appointment_id IS NULL) <> (sale_id IS NULL)),
     INDEX payment_allocations_payment (payment_id),
-    INDEX payment_allocations_appointment (appointment_id)
-) ENGINE=InnoDB
-  DEFAULT CHARSET=utf8mb4
-  COLLATE=utf8mb4_unicode_ci;
+    INDEX payment_allocations_appointment (appointment_id),
+    INDEX payment_allocations_sale (sale_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Una sola caja abierta por centro: open_key vale 1 mientras está abierta y NULL al cerrarse.
+CREATE TABLE IF NOT EXISTS cash_sessions (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    status ENUM('open','closed') NOT NULL DEFAULT 'open',
+    opening_cash DECIMAL(12,2) NOT NULL,
+    opened_by BIGINT UNSIGNED NOT NULL,
+    opened_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    closed_by BIGINT UNSIGNED NULL,
+    closed_at TIMESTAMP NULL,
+    expected_cash DECIMAL(12,2) NULL,
+    counted_cash DECIMAL(12,2) NULL,
+    difference DECIMAL(12,2) NULL,
+    open_key TINYINT GENERATED ALWAYS AS (IF(status='open', 1, NULL)) STORED,
+    CONSTRAINT cash_sessions_opener FOREIGN KEY (opened_by) REFERENCES users(id),
+    CONSTRAINT cash_sessions_closer FOREIGN KEY (closed_by) REFERENCES users(id),
+    CONSTRAINT valid_opening_cash CHECK (opening_cash >= 0),
+    UNIQUE KEY one_open_cash_session (open_key),
+    INDEX cash_sessions_date (opened_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Libro de caja de solo agregado: una corrección es un movimiento inverso (reverses_id), nunca un UPDATE.
+CREATE TABLE IF NOT EXISTS cash_movements (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    cash_session_id BIGINT UNSIGNED NOT NULL,
+    direction ENUM('in','out') NOT NULL,
+    kind ENUM('payment','refund','income','expense','withdrawal') NOT NULL,
+    method ENUM('cash','debit_card','credit_card','transfer','other') NOT NULL,
+    amount DECIMAL(12,2) NOT NULL,
+    payment_id BIGINT UNSIGNED NULL,
+    reverses_id BIGINT UNSIGNED NULL,
+    description VARCHAR(255) NULL,
+    created_by BIGINT UNSIGNED NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT cash_movements_session FOREIGN KEY (cash_session_id) REFERENCES cash_sessions(id),
+    CONSTRAINT cash_movements_payment FOREIGN KEY (payment_id) REFERENCES payments(id),
+    CONSTRAINT cash_movements_reverses FOREIGN KEY (reverses_id) REFERENCES cash_movements(id),
+    CONSTRAINT cash_movements_creator FOREIGN KEY (created_by) REFERENCES users(id),
+    CONSTRAINT valid_movement_amount CHECK (amount > 0),
+    UNIQUE KEY one_reversal_per_movement (reverses_id),
+    INDEX cash_movements_session (cash_session_id, created_at),
+    INDEX cash_movements_payment (payment_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS appointment_audit (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
