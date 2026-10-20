@@ -35,3 +35,45 @@ function agendaPeriod(string $date, string $mode): array {
     return ['from'=>$start->format('Y-m-d'), 'until'=>$start->modify('+1 '.$step)->format('Y-m-d'),
         'previous'=>$start->modify('-1 '.$step)->format('Y-m-d'), 'next'=>$start->modify('+1 '.$step)->format('Y-m-d')];
 }
+
+/** Resolves the date/period/filters shared by the agenda screen, its print view and its CSV export. */
+function agendaView(array $source): array {
+    $date = input($source, 'date', date('Y-m-d'));
+    if (!validDate($date)) $date = date('Y-m-d');
+    $mode = input($source, 'mode', 'day');
+    if (!in_array($mode, ['day','week','month'], true)) $mode = 'day';
+    $employeeFilter = input($source, 'employee');
+    $statusFilter = input($source, 'status');
+    $employees = query('SELECT e.id,u.name,e.active,u.active AS user_active FROM employees e JOIN users u ON u.id=e.user_id ORDER BY u.name,e.id')->fetchAll();
+    $filterError = ($employeeFilter !== '' && (!ctype_digit($employeeFilter) || !in_array($employeeFilter, array_map('strval', array_column($employees, 'id')), true)))
+        || ($statusFilter !== '' && !isset(appointmentStatuses()[$statusFilter]));
+    $period = agendaPeriod($date, $mode);
+    $appointments = $filterError ? [] : appointmentsBetween($period['from'], $period['until'], null,
+        $employeeFilter === '' ? null : (int)$employeeFilter, $statusFilter === '' ? null : $statusFilter);
+    return compact('date', 'mode', 'employees', 'employeeFilter', 'statusFilter', 'filterError', 'period', 'appointments');
+}
+
+/** Neutralises spreadsheet formulas: cells starting with = + - @ tab or CR are prefixed with an apostrophe. */
+function csvSafeCell(string $value): string {
+    $value = str_replace("\0", '', $value);
+    return preg_match('/^[=+\-@\t\r]/', $value) === 1 ? "'" . $value : $value;
+}
+
+/** Builds the agenda CSV (UTF-8 with BOM, ';' separator for Spanish-locale spreadsheets). */
+function agendaCsv(array $appointments): string {
+    $out = fopen('php://temp', 'r+');
+    fwrite($out, "\xEF\xBB\xBF");
+    fputcsv($out, ['Fecha','Inicio','Fin','Cliente','Servicios','Empleado','Estado'], ';', '"', '');
+    foreach ($appointments as $appointment) {
+        fputcsv($out, array_map('csvSafeCell', [
+            substr($appointment['starts_at'], 8, 2).'/'.substr($appointment['starts_at'], 5, 2).'/'.substr($appointment['starts_at'], 0, 4),
+            substr($appointment['starts_at'], 11, 5), substr($appointment['ends_at'], 11, 5),
+            trim($appointment['first_name'].' '.$appointment['last_name']), (string)$appointment['service_name'],
+            (string)$appointment['employee_name'], appointmentStatuses()[$appointment['status']] ?? (string)$appointment['status'],
+        ]), ';', '"', '');
+    }
+    rewind($out);
+    $csv = stream_get_contents($out);
+    fclose($out);
+    return str_replace("\n", "\r\n", $csv);
+}

@@ -19,3 +19,14 @@ No requiere librerías, licencias pagas ni JavaScript. El mes usa una cuadrícul
 `php tests/appointments.php`: 63 comprobaciones, incluyendo filtros combinados, límite exclusivo, período vacío, navegación con filtros, permisos y rechazo de filtros desconocidos. La suite usa una base temporal y la elimina al terminar.
 
 Este avance se apoya en el PR #41, que conserva el intervalo de citas históricas y los descansos omitidos por formularios antiguos.
+
+## Imprimir y exportar · #26
+
+Desde la agenda, «Vista para imprimir» (`/?page=agenda-print`) y «Exportar CSV» (`/?page=agenda-export`) respetan fecha, vista, empleado y estado de la consulta actual y exigen sesión; los profesionales pueden usarlas con el mismo alcance de lectura que la agenda. Con filtros inválidos responden 422 y no generan archivo.
+
+- La vista imprimible es una tabla agrupada por día; el botón usa `public/assets/print.js` (único script, cargado solo allí, compatible con la política CSP). En impresión se ocultan menús y controles.
+- El CSV es UTF-8 con BOM, separador `;` (apertura directa en planillas con configuración regional en español) y fin de línea CRLF. Columnas: Fecha, Inicio, Fin, Cliente, Servicios, Empleado, Estado. No incluye notas.
+- Las celdas que empiezan con `=`, `+`, `-`, `@`, tabulación o retorno de carro se prefijan con `'` para evitar que se ejecuten como fórmulas. Un período vacío descarga solo los encabezados.
+- Sin PDF propio ni XLSX; la persona imprime o guarda como PDF desde el navegador.
+
+Pruebas: 3 unitarias en `tests/run.php` y 10 HTTP/MySQL en `tests/appointments.php` (formato, protección de fórmulas, omisión de notas, vacío, filtros inválidos, sesión obligatoria y conservación de filtros). Pendiente: revisión de otra persona y revisión visual en el navegador del equipo.
