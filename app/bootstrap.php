@@ -17,6 +17,7 @@ require_once __DIR__ . '/employees.php';
 require_once __DIR__ . '/schedule.php';
 require_once __DIR__ . '/database.php';
 require_once __DIR__ . '/appointments.php';
+require_once __DIR__ . '/agenda.php';
 if (PHP_SAPI !== 'cli') {
     ini_set('session.use_strict_mode', '1');
     session_name('bloome_session');
