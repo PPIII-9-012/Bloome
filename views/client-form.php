@@ -1,6 +1,6 @@
 <div style="margin-bottom: 20px;">
-    <a href="<?= e(url('clients')) ?>" style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--teal-dark); margin-bottom: 12px;">
-        <span aria-hidden="true">←</span> Volver a Clientes
+    <a href="<?= e($clientBackUrl ?? url('clients')) ?>" style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--teal-dark); margin-bottom: 12px;">
+        <span aria-hidden="true">←</span> <?= !empty($draftToken)?'Volver al turno':'Volver a Clientes' ?>
     </a>
     <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: var(--text-primary);"><?= e($title) ?></h1>
     <p style="margin: 4px 0 0; color: var(--text-muted); font-size: 13px;">Completá los datos del cliente para su historial y atención en el centro.</p>
@@ -14,7 +14,7 @@
         </div>
     <?php endif; ?>
 
-    <form method="post" action="<?= e(url($page, $page === 'client-edit' ? ['id' => $id] : [])) ?>">
+    <form method="post" action="<?= e(url($page, $page === 'client-edit' ? ['id' => $id] : (!empty($draftToken)?['draft'=>$draftToken]:[]))) ?>">
         <?= csrfField() ?>
         
         <div class="form-grid">
@@ -59,7 +59,7 @@
         </div>
 
         <div class="form-actions">
-            <a class="button-secondary" href="<?= e(url('clients')) ?>">Cancelar</a>
+            <a class="button-secondary" href="<?= e($clientBackUrl ?? url('clients')) ?>">Cancelar</a>
             <button class="button-orange" type="submit">
                 <span><?= $page === 'client-new' ? 'GUARDAR CLIENTE' : 'GUARDAR CAMBIOS' ?></span>
                 <span aria-hidden="true">✓</span>

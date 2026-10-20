@@ -94,6 +94,12 @@ try {
             exit;
         }
         $id = max(0, (int) input($_GET, 'id'));
+        $draftToken=$page==='client-new'?input($_GET,'draft'):'';
+        $draft=$draftToken!==''?appointmentDraft($draftToken):null;
+        if ($draftToken!=='' && !$draft) { http_response_code(410); render('message',compact('user','page')+['title'=>'Borrador vencido','message'=>'Volvé a la agenda para iniciar el turno.']); exit; }
+        $returnTarget=$draft?appointmentDraftTarget($draft,$draftToken):null;
+        if ($draft && !empty($draft['client_created'])) redirect($returnTarget['page'],$returnTarget['params']);
+        $clientBackUrl=$returnTarget?url($returnTarget['page'],$returnTarget['params']):url('clients');
         $client = array_fill_keys(['first_name', 'last_name', 'email', 'phone', 'birth_date', 'notes'], '');
         if ($page === 'client-edit') {
             $client = query('SELECT * FROM clients WHERE id = ?', [$id])->fetch();
@@ -105,6 +111,12 @@ try {
                 $values = [$client['first_name'], $client['last_name'], $client['email'] ?: null, $client['phone'] ?: null, $client['birth_date'] ?: null, $client['notes'] ?: null];
                 if ($page === 'client-new') {
                     query('INSERT INTO clients (first_name, last_name, email, phone, birth_date, notes) VALUES (?, ?, ?, ?, ?, ?)', $values);
+                    if ($draft) {
+                        $_SESSION['appointment_drafts'][$draftToken]['form']['client_id']=(string)db()->lastInsertId();
+                        $_SESSION['appointment_drafts'][$draftToken]['client_created']=true;
+                        flash('Cliente creado. Revisá y guardá el turno; todavía no está reservado.');
+                        redirect($returnTarget['page'],$returnTarget['params']);
+                    }
                 } else {
                     query('UPDATE clients SET first_name=?, last_name=?, email=?, phone=?, birth_date=?, notes=?, updated_at=CURRENT_TIMESTAMP WHERE id=?', [...$values, $id]);
                 }
@@ -113,7 +125,7 @@ try {
             }
             http_response_code(422);
         }
-        render('client-form', compact('user', 'page', 'client', 'errors', 'id') + ['title' => $page === 'client-new' ? 'Nuevo cliente' : 'Editar cliente']);
+        render('client-form', compact('user', 'page', 'client', 'errors', 'id','draftToken','clientBackUrl') + ['title' => $page === 'client-new' ? 'Nuevo cliente' : 'Editar cliente']);
     } elseif ($page === 'agenda' && $method === 'GET') {
         $date = input($_GET, 'date', date('Y-m-d'));
         if (!validDate($date)) $date = date('Y-m-d');

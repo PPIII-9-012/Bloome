@@ -25,7 +25,8 @@ function apRequest(string $page,?array $data=null): array {
     $body=file_get_contents("http://127.0.0.1:$webPort/?page=$page",false,$ctx);
     $headers=http_get_last_response_headers(); preg_match('/\s(\d{3})\s/',$headers[0],$m);
     foreach($headers as $header) if(preg_match('/^Set-Cookie:\s*([^=]+)=([^;]*)/i',$header,$cookie)) $cookies[$cookie[1]]=$cookie[1].'='.$cookie[2];
-    return [(int)$m[1],$body];
+    $location=''; foreach($headers as $header) if(str_starts_with($header,'Location: ')) $location=substr($header,10);
+    return [(int)$m[1],$body,$location];
 }
 function apToken(string $body,string $name='csrf'): string { preg_match('/name="'.$name.'" value="([a-f0-9]+)"/',$body,$m); return $m[1]??''; }
 try {
@@ -96,7 +97,45 @@ try {
     apCheck(apRequest('appointment-cancel&id='.$httpId)[0]===405,'Cancelar por GET está prohibido');
     apCheck(apRequest('appointment-cancel&id='.$httpId,['csrf'=>$csrf,'version'=>apToken($body,'version')])[0]===303,'Cancelación HTTP válida');
     apCheck(apRequest('appointment-edit&id=999999')[0]===404,'ID inexistente devuelve 404');
+    [$status,$body]=apRequest('appointment-new&date=2026-11-13&mode=week&employee=501');
+    apCheck($status===200 && str_contains($body,'value="2026-11-13T09:00"') && str_contains($body,'value="501" selected'),'Alta contextual precarga fecha y empleado');
+    $draftData=array_replace($data,['starts_at'=>'2026-11-13T10:00','csrf'=>$csrf,'intent'=>'new-client','agenda'=>['date'=>'2026-11-13','mode'=>'week','employee'=>'501']]);
+    apCheck(apRequest('appointment-new',array_diff_key($draftData,['csrf'=>true]))[0]===419,'Crear borrador exige CSRF');
+    [$status,,$location]=apRequest('appointment-new',$draftData);
+    parse_str(parse_url($location,PHP_URL_QUERY),$destination); $draftToken=$destination['draft']??'';
+    apCheck($status===303 && strlen($draftToken)===32 && $destination['page']==='client-new','Alta de cliente abre borrador privado');
+    [$status,$body]=apRequest('client-new&draft='.$draftToken);
+    apCheck($status===200 && str_contains($body,'Volver al turno') && str_contains($body,'draft='.$draftToken),'Formulario existente conserva retorno al turno');
+    apCheck(apRequest('client-new&draft='.$draftToken,['csrf'=>$csrf,'first_name'=>'','last_name'=>''])[0]===422,'Cliente inválido permite corregir sin perder borrador');
+    [, $body]=apRequest('appointment-new&draft='.$draftToken);
+    apCheck(str_contains($body,'value="2026-11-13T10:00"') && str_contains($body,'&lt;script&gt;test&lt;/script&gt;') && str_contains($body,'value="2" checked'),'Volver sin crear cliente conserva fecha, notas y servicios');
+    $clientCount=(int)query('SELECT COUNT(*) FROM clients')->fetchColumn();
+    $newClient=['csrf'=>$csrf,'first_name'=>'Contextual','last_name'=>'Prueba'];
+    [$status,,$location]=apRequest('client-new&draft='.$draftToken,$newClient);
+    $createdClient=(string)query('SELECT MAX(id) FROM clients')->fetchColumn();
+    apCheck($status===303 && str_contains($location,'appointment-new') && (int)query('SELECT COUNT(*) FROM clients')->fetchColumn()===$clientCount+1,'Crear cliente retorna al borrador sin reservar turno');
+    apRequest('client-new&draft='.$draftToken,$newClient);
+    apCheck((int)query('SELECT COUNT(*) FROM clients')->fetchColumn()===$clientCount+1,'Reenviar alta contextual no duplica cliente');
+    [$status,$body]=apRequest('appointment-new&draft='.$draftToken);
+    apCheck(str_contains($body,'value="'.$createdClient.'" selected') && str_contains($body,'name="agenda[mode]" value="week"'),'Retorno selecciona cliente nuevo y conserva contexto');
+    $otherCookies=$cookies; $cookies=[];
+    [, $body]=apRequest('login'); apRequest('login',['csrf'=>apToken($body),'email'=>'reception@example.test','password'=>$loginPassword]);
+    apCheck(apRequest('client-new&draft='.$draftToken)[0]===410,'Otra sesión no accede al borrador'); $cookies=$otherCookies;
+    $saveDraft=array_replace($draftData,['client_id'=>$createdClient]); unset($saveDraft['intent']);
+    [$status,,$location]=apRequest('appointment-new&draft='.$draftToken,$saveDraft);
+    apCheck($status===303 && str_contains($location,'mode=week') && str_contains($location,'employee=501'),'Guardar turno vuelve al período y filtros originales');
+    apCheck(apRequest('appointment-new&draft='.$draftToken)[0]===410,'Guardar consume el borrador');
+    $beforeDraft=appointmentRecord($id);
+    $editDraft=array_replace($draftData,['version'=>appointmentVersion($beforeDraft)]);
+    [,,$editLocation]=apRequest('appointment-edit&id='.$id,$editDraft);
+    parse_str(parse_url($editLocation,PHP_URL_QUERY),$editDestination); $editToken=$editDestination['draft'];
+    query('UPDATE appointments SET notes=? WHERE id=?',['cambio de otra persona',$id]);
+    $editSave=$editDraft; unset($editSave['intent']);
+    apCheck(apRequest('appointment-edit&id='.$id.'&draft='.$editToken,$editSave)[0]===409,'Borrador de edición no sobrescribe cambios concurrentes');
+    apCheck(appointmentRecord($id)['notes']==='cambio de otra persona','Conflicto del borrador conserva datos actuales');
     apRequest('logout',['csrf'=>$csrf]); [, $body]=apRequest('login'); apRequest('login',['csrf'=>apToken($body),'email'=>'professional@example.test','password'=>$loginPassword]);
+    [, $body]=apRequest('dashboard');
+    apCheck(apRequest('appointment-new',array_replace($draftData,['csrf'=>apToken($body)]))[0]===403,'Profesional no puede iniciar alta contextual');
     apCheck(apRequest('appointment-new')[0]===403 && apRequest('appointment-edit&id='.$id)[0]===403,'Profesional sin controles de escritura');
     $historical=appointmentRecord($replacement);
     query("UPDATE employee_schedules SET break_start='10:00',break_end='12:00' WHERE user_id=1 AND day_of_week=1");
