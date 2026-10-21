@@ -38,6 +38,7 @@ $formUrl=url('sale-new',$appointment?['appointment'=>$appointment['id']]:[]);
 <dt>Total</dt><dd><strong><?= e(moneyFormat($sum['total'])) ?></strong></dd>
 </dl><p class="muted">Cálculo de vista previa. El total definitivo se vuelve a calcular al guardar.</p></section>
 <?php endif; ?>
+<?php if($appointment): ?><p><a href="<?= e(url('deposit-new',['appointment'=>$appointment['id']])) ?>">Registrar una seña de esta cita</a></p><?php endif; ?>
 <div class="form-actions"><a class="button-secondary" href="<?= e($backUrl) ?>">Cancelar</a><button class="button-secondary" type="submit" name="intent" value="preview" formnovalidate>Calcular total</button><button class="button-orange" type="submit" name="intent" value="save">GUARDAR VENTA</button></div>
 </form>
 </div>

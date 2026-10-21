@@ -44,8 +44,18 @@ Se agregan en un parche aparte porque dependen de la agenda (#42) y de la ficha 
 
 ```sh
 php tests/sales.php
+php tests/payments.php
 ```
 
 Crea y elimina su propia base. Verifica permisos, vista previa sin guardar, validaciones,
 guardado con total del servidor, venta desde una cita con el precio acordado, venta única por
 cita y precio no modificable por formulario.
+
+## Cobros y señas (tarjeta #16)
+
+- **Cobrar** (`?page=sale-pay&id=N`): cobro total o parcial de una venta, con medio de pago. El importe se sugiere con el saldo y nunca puede superarlo. Solo administración y recepción.
+- **Caja**: sin caja abierta no se cobra. La pantalla ofrece abrirla (efectivo inicial). El arqueo y el cierre llegan con las tarjetas 19 y 20.
+- **Doble clic / reintento**: el formulario lleva una clave de operación; reenviarlo no duplica el cobro ni el movimiento de caja. La misma clave con otros datos se rechaza.
+- **Seña** (`?page=deposit-new&appointment=N`): el dinero entra a la caja al cobrarla. Se aplica después, total o parcialmente, a una venta del mismo cliente desde la pantalla de cobro. Aplicarla no mueve la caja otra vez.
+- Acceso: botón "Cobrar" en el detalle de la venta y enlace "Registrar una seña" en la venta de una cita. El acceso desde la agenda y la ficha va con el parche de enlaces.
+- Pendiente (tarjeta 18): anular y devolver desde pantalla.

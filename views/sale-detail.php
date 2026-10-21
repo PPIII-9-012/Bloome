@@ -5,7 +5,7 @@ $label=COLLECTION_LABELS[$balance['collection']]??$balance['collection'];
 <p class="client-back"><a href="<?= e(url('client',['id'=>$sale['client_id']])) ?>">← Volver a la ficha de <?= e($client) ?></a></p>
 <div class="employee-heading"><h1>Venta #<?= e($sale['id']) ?></h1><p><?= e((new DateTimeImmutable($sale['created_at']))->format('d/m/Y H:i')) ?> · registrada por <?= e($sale['created_by_name']) ?></p></div>
 <div class="figma-action-bar client-actions">
-<span class="figma-action-btn disabled" aria-disabled="true"><span>Cobrar</span> <small class="nav-tag-pending">Próx.</small></span>
+<?php if($sale['status']==='confirmed' && $balance['balance']>0): ?><a class="figma-action-btn" href="<?= e(url('sale-pay',['id'=>$sale['id']])) ?>"><span>Cobrar</span></a><?php else: ?><span class="figma-action-btn disabled" aria-disabled="true"><span>Cobrar</span></span><?php endif; ?>
 <span class="figma-action-btn disabled" aria-disabled="true"><span>Anular</span> <small class="nav-tag-pending">Próx.</small></span>
 </div>
 <div class="client-details">
@@ -37,6 +37,15 @@ $label=COLLECTION_LABELS[$balance['collection']]??$balance['collection'];
 <dt>Cobrado</dt><dd><?= e(moneyFormat($balance['paid'])) ?></dd>
 <dt>Saldo</dt><dd><strong><?= e(moneyFormat($balance['balance'])) ?></strong></dd>
 </dl>
-<?php if($sale['status']==='confirmed' && $balance['paid']===0): ?><p class="muted" role="status">Todavía no hay cobros registrados. El cobro de ventas llega con la tarjeta 16.</p><?php endif; ?>
+<h3>Cobros</h3>
+<?php if(!$payments): ?><p class="muted" role="status">Todavía no hay cobros registrados.</p><?php else: ?>
+<div class="employee-table-wrap"><table class="figma-table">
+<thead><tr><th scope="col">Fecha</th><th scope="col">Tipo</th><th scope="col">Medio</th><th scope="col">Importe</th><th scope="col">Estado</th></tr></thead>
+<tbody>
+<?php foreach($payments as $pay): ?>
+<tr><td><?= e((new DateTimeImmutable($pay['paid_at']))->format('d/m/Y H:i')) ?></td><td><?= $pay['kind']==='deposit'?'Seña aplicada':'Cobro' ?></td><td><?= e(PAYMENT_METHODS[$pay['payment_method']]??$pay['payment_method']) ?></td><td><?= e(moneyFormat(decimalToCents($pay['amount']))) ?></td><td><?= $pay['released_at']?($pay['kind']==='deposit'?'Liberada':'Reintegrado'):'Vigente' ?></td></tr>
+<?php endforeach; ?>
+</tbody></table></div>
+<?php endif; ?>
 </section>
 </div>

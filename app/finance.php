@@ -356,3 +356,25 @@ function activeSalesByAppointment(array $appointmentIds): array
 }
 
 const COLLECTION_LABELS = ['unpaid' => 'Sin cobrar', 'partial' => 'Cobro parcial', 'paid' => 'Cobrada', 'voided' => 'Anulada'];
+
+/** Cobros y señas aplicados a una venta (vigentes y liberados), del más antiguo al más nuevo. */
+function salePayments(int $saleId): array
+{
+    return query('SELECT pa.id, pa.amount, pa.released_at, p.id AS payment_id, p.kind, p.payment_method, p.status, p.paid_at, u.name AS created_by_name
+        FROM payment_allocations pa JOIN payments p ON p.id=pa.payment_id LEFT JOIN users u ON u.id=p.created_by
+        WHERE pa.sale_id=? ORDER BY pa.id', [$saleId])->fetchAll();
+}
+
+/** Señas pagadas de un cliente que todavía tienen saldo sin aplicar: [payment_id, amount, available (centavos), appointment_id, paid_at]. */
+function clientDeposits(int $clientId): array
+{
+    $rows = query("SELECT p.id AS payment_id, p.amount, p.paid_at, pa.appointment_id FROM payments p
+        JOIN payment_allocations pa ON pa.payment_id=p.id AND pa.appointment_id IS NOT NULL
+        WHERE p.client_id=? AND p.kind='deposit' AND p.status='paid' ORDER BY p.id", [$clientId])->fetchAll();
+    $out = [];
+    foreach ($rows as $row) {
+        $available = depositAvailableCents((int)$row['payment_id']);
+        if ($available > 0) $out[] = $row + ['available' => $available];
+    }
+    return $out;
+}

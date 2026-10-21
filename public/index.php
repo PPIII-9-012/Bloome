@@ -63,6 +63,9 @@ try {
     if (in_array($page, ['sale-new','sale'], true)) {
         require ROOT . '/app/sale-routes.php';
     }
+    if (in_array($page, ['sale-pay','deposit-new'], true)) {
+        require ROOT . '/app/payment-routes.php';
+    }
     if (in_array($page, ['appointment-new','appointment-edit','appointment-cancel'], true)) {
         require ROOT . '/app/appointment-routes.php';
     }

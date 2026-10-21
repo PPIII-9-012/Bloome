@@ -12,7 +12,8 @@ if ($page==='sale') {
     $id=filter_var(input($_GET,'id'),FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
     $sale=$id?saleRecord($id):false;
     if (!$sale) $deny(404,'Venta no encontrada.');
-    render('sale-detail',compact('user','page','sale')+['title'=>'Venta #'.$sale['id']]);
+    $payments=salePayments((int)$sale['id']);
+    render('sale-detail',compact('user','page','sale','payments')+['title'=>'Venta #'.$sale['id']]);
     exit;
 }
 
