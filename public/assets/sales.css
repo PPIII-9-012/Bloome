@@ -21,3 +21,7 @@
 .sale-lines td::before{content:attr(data-label);display:block;margin-bottom:.25rem;font-size:12px;font-weight:600;color:var(--text-primary)}
 .sale-lines td:nth-child(2) input{max-width:none}
 }
+/* Cobros y señas (tarjeta #16) */
+.inline-form{display:flex;flex-wrap:wrap;align-items:flex-end;gap:.75rem 1rem;margin:.75rem 0}
+.inline-form p{flex:1 1 100%;margin:0}
+.inline-form .field{margin:0}
