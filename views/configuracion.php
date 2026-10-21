@@ -64,7 +64,7 @@
                 <h3>Empleados</h3>
                 <p>Buscá empleados, consultá sus perfiles, editá sus datos y administrá vacaciones y horarios.</p>
             </div>
-            <a class="config-action-link" href="<?= e(url('configuracion', ['seccion' => 'empleados'])) ?>">
+            <a class="config-action-link" href="<?= e(url('employees')) ?>">
                 Gestionar <span aria-hidden="true">→</span>
             </a>
         </article>

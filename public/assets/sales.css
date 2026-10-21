@@ -1,0 +1,60 @@
+/* Ventas (tarjeta #15) */
+.sale-lines select,.sale-lines input{width:100%;min-width:0;padding:10px 12px;border:1px solid #d1d5db;border-radius:var(--radius-sm);background:#fff;font-size:14px;color:inherit}
+.sale-lines select:focus,.sale-lines input:focus{outline:none;border-color:var(--teal-dark);box-shadow:0 0 0 3px rgba(14,61,62,.1)}
+.sale-lines td:first-child{min-width:19rem}
+.sale-lines td:nth-child(2){min-width:5.5rem}
+.sale-lines td:nth-child(3){min-width:10.5rem}
+.sale-lines td:nth-child(4){min-width:8rem}
+.sale-totals{margin:1rem 0;padding:1rem;border-radius:12px;background:#0e3d3e;color:#fff}
+.sale-totals dl,.sale-totals-list,.sale-meta{display:grid;grid-template-columns:max-content 1fr;gap:.35rem 1.25rem;margin:0}
+.sale-totals dd,.sale-totals-list dd,.sale-meta dd{margin:0;text-align:right}
+.sale-meta dd{text-align:left}
+.sale-totals-list{margin-top:1rem;justify-content:end}
+.sale-totals .muted{color:#d9e7e7;margin:.75rem 0 0}
+@media (max-width:640px){.sale-totals dl,.sale-totals-list,.sale-meta{grid-template-columns:1fr 1fr}}
+@media (max-width:640px){
+.sale-lines,.sale-lines tbody{display:block}
+.sale-lines thead{display:none}
+.sale-lines tr{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;padding:.75rem;border-bottom:1px solid #e5e7eb}
+.sale-lines td{display:block;min-width:0!important;padding:0;border:0}
+.sale-lines td:first-child{grid-column:1/-1}
+.sale-lines td::before{content:attr(data-label);display:block;margin-bottom:.25rem;font-size:12px;font-weight:600;color:var(--text-primary)}
+.sale-lines td:nth-child(2) input{max-width:none}
+}
+/* Cobros y señas (tarjeta #16) */
+.inline-form{display:flex;flex-wrap:wrap;align-items:flex-end;gap:.75rem 1rem;margin:.75rem 0}
+.inline-form p{flex:1 1 100%;margin:0}
+.inline-form .field{margin:0}
+/* Listado de ventas (tarjeta #17) */
+.sales-filters{display:grid;grid-template-columns:2fr 1.2fr 1fr 1fr auto;gap:.75rem 1rem;align-items:end;margin-bottom:1rem}
+.sales-filters .field{margin:0}
+.sales-filters input,.sales-filters select{width:100%;min-width:0}
+.sales-filter-actions{display:flex;align-items:center;gap:.75rem}
+.pagination-links{display:flex;gap:8px}
+.empty-state{text-align:center;padding:48px 24px;color:var(--text-muted)}
+.empty-state h3{margin:0 0 6px;font-size:16px;font-weight:600;color:var(--text-primary)}
+@media (max-width:900px){.sales-filters{grid-template-columns:1fr 1fr}.sales-filter-actions{grid-column:1/-1}}
+@media (max-width:640px){
+.sales-table,.sales-table tbody{display:block}
+.sales-table thead{display:none}
+.sales-table tr{display:grid;grid-template-columns:1fr 1fr;gap:.5rem .75rem;padding:.75rem;border-bottom:1px solid #e5e7eb}
+.sales-table td{display:block;padding:0;border:0}
+.sales-table td::before{content:attr(data-label);display:block;font-size:12px;font-weight:600;color:var(--text-primary)}
+.sales-table td:last-child::before{content:none}
+}
+/* Caja diaria (tarjeta #19) */
+.cash-filters{grid-template-columns:1fr 1fr auto}
+.cash-total th,.cash-total td{border-top:2px solid #0e3d3e;font-weight:600}
+.amount-in{color:#166534;white-space:nowrap}
+.amount-out{color:#991b1b;white-space:nowrap}
+.cash-history{margin:0;padding-left:1.2rem}
+.cash-table .inline-form{margin:0;flex-wrap:nowrap}
+.cash-table .inline-form input{min-width:9rem}
+@media (max-width:900px){.cash-filters{grid-template-columns:1fr 1fr}}
+@media (max-width:640px){
+.cash-summary,.cash-summary tbody,.cash-table,.cash-table tbody{display:block}
+.cash-summary thead,.cash-table thead{display:none}
+.cash-summary tr,.cash-table tr{display:grid;grid-template-columns:1fr 1fr;gap:.5rem .75rem;padding:.75rem;border-bottom:1px solid #e5e7eb}
+.cash-summary td,.cash-table td,.cash-summary th{display:block;padding:0;border:0}
+.cash-summary td::before,.cash-table td::before{content:attr(data-label);display:block;font-size:12px;font-weight:600;color:var(--text-primary)}
+}

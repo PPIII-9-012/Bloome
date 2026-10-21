@@ -94,4 +94,3 @@ $vacations = (!$editing && $id) ? employeeVacations($id) : [];
 $schedule = (!$editing && $id) ? employeeSchedule($id) : [];
 render($editing ? 'employee-form' : 'employee-profile', compact('user','page','employee','errors','id','self','new','title','vacations','schedule'));
 exit;
-

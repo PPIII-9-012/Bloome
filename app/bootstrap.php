@@ -13,9 +13,14 @@ if (is_file($envFile)) {
 date_default_timezone_set(getenv('APP_TIMEZONE') ?: 'America/Argentina/Buenos_Aires');
 require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/validation.php';
+require_once __DIR__ . '/finance.php';
+require_once __DIR__ . '/employees.php';
+require_once __DIR__ . '/schedule.php';
 require_once __DIR__ . '/database.php';
 require_once __DIR__ . '/permissions.php';
 require_once __DIR__ . '/audit.php';
+require_once __DIR__ . '/appointments.php';
+require_once __DIR__ . '/agenda.php';
 if (PHP_SAPI !== 'cli') {
     ini_set('session.use_strict_mode', '1');
     session_name('bloome_session');

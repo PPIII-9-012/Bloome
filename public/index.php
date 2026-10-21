@@ -16,14 +16,8 @@ $errors = [];
 
 try {
     if (!empty($_SESSION['user_id'])) {
-        $user = query(
-            'SELECT id, name, email, role FROM users WHERE id = ? AND active = 1',
-            [$_SESSION['user_id']]
-        )->fetch() ?: null;
-
-        if (!$user) {
-            unset($_SESSION['user_id']);
-        }
+        $user = query('SELECT u.id, u.name, u.email, u.role FROM users u LEFT JOIN employees e ON e.user_id=u.id WHERE u.id = ? AND u.active = 1 AND COALESCE(e.active,1)=1', [$_SESSION['user_id']])->fetch() ?: null;
+        if (!$user) unset($_SESSION['user_id']);
     }
 
     if ($method === 'POST' && !validCsrf(input($_POST, 'csrf'))) {
@@ -68,30 +62,11 @@ try {
                 $errors['login'] =
                     'Demasiados intentos. Esperá 15 minutos antes de volver a intentar.';
             } else {
-                query(
-                    'INSERT INTO login_attempts (identity_hash, ip_hash)
-                     VALUES (?, ?)',
-                    [$fingerprint, $ipKey]
-                );
-
-                $account = query(
-                    'SELECT * FROM users WHERE email = ? AND active = 1',
-                    [$email]
-                )->fetch();
-
-                $password = isset($_POST['password'])
-                    && is_string($_POST['password'])
-                    ? $_POST['password']
-                    : '';
-
-                $hash = $account['password_hash']
-                    ?? '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.';
-
-                if (
-                    $account
-                    && strlen($password) <= 1024
-                    && password_verify($password, $hash)
-                ) {
+                query('INSERT INTO login_attempts (identity_hash, ip_hash) VALUES (?, ?)', [$fingerprint, $ipKey]);
+                $account = query('SELECT u.* FROM users u LEFT JOIN employees e ON e.user_id=u.id WHERE u.email = ? AND u.active = 1 AND COALESCE(e.active,1)=1', [$email])->fetch();
+                $password = isset($_POST['password']) && is_string($_POST['password']) ? $_POST['password'] : '';
+                $hash = $account['password_hash'] ?? '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.';
+                if (strlen($password) <= 1024 && password_verify($password, $hash) && $account) {
                     session_regenerate_id(true);
 
                     $_SESSION['user_id'] = $account['id'];
@@ -137,7 +112,24 @@ try {
 
         redirect('login');
     }
-
+    if (in_array($page, ['employees','employee','employee-new','employee-edit','profile','profile-edit','employee-vacation-new','employee-vacation-delete','employee-schedule-save'], true)) {
+        require ROOT . '/app/employee-routes.php';
+    }
+    if (in_array($page, ['holidays','holiday-new','holiday-delete','schedule'], true)) {
+        require ROOT . '/app/schedule-routes.php';
+    }
+    if (in_array($page, ['sale-new','sale','sales'], true)) {
+        require ROOT . '/app/sale-routes.php';
+    }
+    if (in_array($page, ['caja','caja-movement','caja-close'], true)) {
+        require ROOT . '/app/cash-routes.php';
+    }
+    if (in_array($page, ['sale-pay','sale-void','deposit-new'], true)) {
+        require ROOT . '/app/payment-routes.php';
+    }
+    if (in_array($page, ['appointment-new','appointment-edit','appointment-cancel'], true)) {
+        require ROOT . '/app/appointment-routes.php';
+    }
     if ($page === 'dashboard' && $method === 'GET') {
         $today = date('Y-m-d');
 
@@ -160,41 +152,8 @@ try {
                 'SELECT COUNT(*) FROM services WHERE active = 1'
             )->fetchColumn(),
         ];
-
-        $appointments = query(
-            'SELECT a.*, c.first_name, c.last_name,
-                    COALESCE(service_list.service_name, "Sin servicios") AS service_name,
-                    u.name AS employee_name
-             FROM appointments a
-             JOIN clients c ON c.id = a.client_id
-             JOIN employees e ON e.id = a.employee_id
-             JOIN users u ON u.id = e.user_id
-             LEFT JOIN (
-                 SELECT aps.appointment_id,
-                        GROUP_CONCAT(
-                            DISTINCT s.name
-                            ORDER BY s.name
-                            SEPARATOR ", "
-                        ) AS service_name
-                 FROM appointment_services aps
-                 JOIN services s ON s.id = aps.service_id
-                 GROUP BY aps.appointment_id
-             ) AS service_list ON service_list.appointment_id = a.id
-             WHERE a.starts_at >= ? AND a.starts_at < ?
-             ORDER BY a.starts_at
-             LIMIT 6',
-            [
-                $today,
-                date('Y-m-d', strtotime('+1 day')),
-            ]
-        )->fetchAll();
-
-        render(
-            'dashboard',
-            compact('user', 'page', 'stats', 'appointments')
-                + ['title' => 'Tu centro, en un vistazo']
-        );
-
+        $appointments = appointmentsBetween($today, date('Y-m-d', strtotime('+1 day')), 6);
+        render('dashboard', compact('user', 'page', 'stats', 'appointments') + ['title' => 'Tu centro, en un vistazo']);
     } elseif ($page === 'clients' && $method === 'GET') {
         if (!hasPermission($user, 'clients.view')) {
             http_response_code(403);
@@ -388,44 +347,17 @@ try {
 
     } elseif ($page === 'agenda' && $method === 'GET') {
         $date = input($_GET, 'date', date('Y-m-d'));
-
-        if (!validDate($date)) {
-            $date = date('Y-m-d');
-        }
-
-        $next = (new DateTimeImmutable($date))
-            ->modify('+1 day')
-            ->format('Y-m-d');
-
-        $appointments = query(
-            'SELECT a.*, c.first_name, c.last_name,
-                    COALESCE(service_list.service_name, "Sin servicios") AS service_name,
-                    u.name AS employee_name
-             FROM appointments a
-             JOIN clients c ON c.id = a.client_id
-             JOIN employees e ON e.id = a.employee_id
-             JOIN users u ON u.id = e.user_id
-             LEFT JOIN (
-                 SELECT aps.appointment_id,
-                        GROUP_CONCAT(
-                            DISTINCT s.name
-                            ORDER BY s.name
-                            SEPARATOR ", "
-                        ) AS service_name
-                 FROM appointment_services aps
-                 JOIN services s ON s.id = aps.service_id
-                 GROUP BY aps.appointment_id
-             ) AS service_list ON service_list.appointment_id = a.id
-             WHERE a.starts_at >= ? AND a.starts_at < ?
-             ORDER BY a.starts_at',
-            [$date, $next]
-        )->fetchAll();
-
-        render(
-            'agenda',
-            compact('user', 'page', 'date', 'appointments')
-                + ['title' => 'Agenda']
-        );
+        if (!validDate($date)) $date = date('Y-m-d');
+        $mode = input($_GET, 'mode', 'day');
+        if (!in_array($mode, ['day','week','month'], true)) $mode='day';
+        $employeeFilter = input($_GET, 'employee');
+        $statusFilter = input($_GET, 'status');
+        $employees = query('SELECT e.id,u.name,e.active,u.active AS user_active FROM employees e JOIN users u ON u.id=e.user_id ORDER BY u.name,e.id')->fetchAll();
+        $filterError = ($employeeFilter !== '' && (!ctype_digit($employeeFilter) || !in_array($employeeFilter,array_map('strval',array_column($employees,'id')),true))) || ($statusFilter !== '' && !isset(appointmentStatuses()[$statusFilter]));
+        $period = agendaPeriod($date, $mode);
+        if ($filterError) http_response_code(422);
+        $appointments = $filterError ? [] : appointmentsBetween($period['from'], $period['until'], null, $employeeFilter === '' ? null : (int)$employeeFilter, $statusFilter === '' ? null : $statusFilter);
+        render('agenda', compact('user', 'page', 'date', 'mode', 'employees', 'employeeFilter', 'statusFilter', 'filterError', 'period', 'appointments') + ['title' => 'Agenda']);
 
     } elseif (
         $page === 'configuracion'
@@ -824,104 +756,6 @@ try {
                 'search'
             ) + ['title' => 'Servicios y tratamientos']
         );
-    } elseif (
-        $page === 'configuracion'
-        && input($_GET, 'seccion') === 'empleados'
-    ) {
-        if (($user['role'] ?? '') !== 'admin') {
-            http_response_code(403);
-
-            render('403', [
-                'user' => $user,
-                'page' => $page,
-                'title' => 'Acceso denegado',
-            ]);
-
-            exit;
-        }
-
-        $errors = [];
-        $search = input($_GET, 'buscar');
-        $status = input($_GET, 'estado', 'all');
-        $action = input($_GET, 'action');
-        $id = max(0, (int) input($_GET, 'id'));
-
-        $employee = $id > 0 ? findEmployee($id) : null;
-
-        if ($id > 0 && !$employee) {
-            http_response_code(404);
-            render('message', [
-                'user' => $user,
-                'page' => $page,
-                'title' => 'Empleado no encontrado',
-                'message' => 'El empleado solicitado no existe.',
-            ]);
-            exit;
-        }
-
-        if ($method === 'POST') {
-            $action = input($_POST, 'action');
-            $postedId = max(0, (int) input($_POST, 'id'));
-
-            if ($action === 'toggle') {
-                $active = input($_POST, 'active') === '1';
-                $target = $postedId > 0 ? findEmployee($postedId) : null;
-
-                if (!$target) {
-                    flash('El empleado no existe.');
-                } else {
-                    setEmployeeActive($postedId, $active);
-                    flash($active
-                        ? 'El empleado se activó correctamente.'
-                        : 'El empleado se desactivó correctamente.');
-                }
-
-                redirect('configuracion', ['seccion' => 'empleados']);
-            }
-
-            if ($action === 'save') {
-                [$data, $validationErrors] =
-                    validateEmployee($_POST, $postedId > 0 ? $postedId : null);
-
-                $errors = array_merge($errors, $validationErrors);
-
-                if (!$errors) {
-                    saveEmployee($data, $postedId > 0 ? $postedId : null);
-                    flash($postedId > 0
-                        ? 'El empleado se actualizó correctamente.'
-                        : 'El empleado se creó correctamente.');
-
-                    redirect('configuracion', ['seccion' =>'empleados',
-                    ]);
-                }
-
-                $employee = array_merge($employee ?? [], $_POST);
-                if ($postedId > 0) {
-                    $employee['id'] = $postedId;
-                }
-            } else {
-                $errors['general'] = 'La operación solicitada no es válida.';
-            }
-
-            http_response_code(422);
-        }
-
-        $employees = listEmployees($search, $status);
-
-        render(
-            'configuracion-empleados',
-            compact(
-                'user',
-                'page',
-                'employees',
-                'employee',
-                'errors',
-                'search',
-                'status',
-                'action'
-            ) + ['title' => 'Empleados']
-        );
-
     } elseif ($page === 'auditoria' && $method === 'GET') {
         if (!hasPermission($user, 'audit.view')) {
             recordAudit((int) $user['id'], 'audit_view', 'audit_logs', null, 'denied');

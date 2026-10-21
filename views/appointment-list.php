@@ -1,4 +1,4 @@
-<?php $statuses = ['pending' => 'Pendiente', 'confirmed' => 'Confirmada', 'completed' => 'Completada', 'cancelled' => 'Cancelada']; ?>
+<?php $statuses = ['pending' => 'Pendiente', 'confirmed' => 'Confirmada', 'completed' => 'Completada', 'cancelled' => 'Cancelada', 'missed' => 'Ausente']; ?>
 <?php if (!$appointments): ?>
     <div style="text-align: center; padding: 48px 24px; color: var(--text-muted);">
         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 12px; color: var(--teal-dark);"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -12,6 +12,7 @@
                 <th style="width: 140px;">Horario</th>
                 <th>Cliente / Servicio</th>
                 <th>Profesional</th>
+                <?php if (isset($user) && canEdit($user)): ?><th>Acciones</th><?php endif; ?>
                 <th style="width: 130px; text-align: right;">Estado</th>
             </tr>
         </thead>
@@ -26,7 +27,8 @@
                     <strong style="display: block; font-size: 14px; color: var(--text-primary);"><?= e($appointment['first_name'] . ' ' . $appointment['last_name']) ?></strong>
                     <small style="color: var(--text-muted); font-size: 12px;"><?= e($appointment['service_name']) ?></small>
                 </td>
-                <td style="color: var(--text-secondary);"><?= e($appointment['employee_name']) ?></td>
+                <td style="color: var(--text-secondary);"><?= employeeSwatch($appointment['appointment_color'] ?? null) ?> <?= e($appointment['employee_name']) ?></td>
+                <?php if (isset($user) && canEdit($user)): ?><td><a href="<?= e(url('appointment-edit',['id'=>$appointment['id']])) ?>">Editar turno</a></td><?php endif; ?>
                 <td style="text-align: right;">
                     <span class="badge <?= e($appointment['status']) ?>"><?= e($statuses[$appointment['status']]) ?></span>
                 </td>
