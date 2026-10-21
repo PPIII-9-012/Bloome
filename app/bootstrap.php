@@ -17,6 +17,8 @@ require_once __DIR__ . '/finance.php';
 require_once __DIR__ . '/employees.php';
 require_once __DIR__ . '/schedule.php';
 require_once __DIR__ . '/database.php';
+require_once __DIR__ . '/permissions.php';
+require_once __DIR__ . '/audit.php';
 require_once __DIR__ . '/appointments.php';
 require_once __DIR__ . '/agenda.php';
 if (PHP_SAPI !== 'cli') {

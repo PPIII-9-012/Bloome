@@ -17,6 +17,7 @@ try {
     require ROOT . '/app/employee-migration.php';
     require ROOT . '/app/model-migration.php';
     require ROOT . '/app/finance-migration.php';
+    require ROOT . '/app/catalog-migration.php';
     if (appointmentEmployeeTarget() === 'users' && !in_array('--maintenance', $argv, true)) {
         throw new RuntimeException('Respaldá la base, detené las escrituras y ejecutá con --maintenance.');
     }
@@ -28,6 +29,7 @@ try {
     if (!$exists) query('INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)', [$name, $email, password_hash($password, PASSWORD_DEFAULT), 'admin']);
     migrateAppointmentModel();
     migrateFinanceModel();
+    migrateServiceCatalog();
     echo "Esquema instalado. Administrador " . ($exists ? 'existente conservado' : 'creado') . ".\n";
 } catch (Throwable $e) {
     fwrite(STDERR, "Instalación incompleta. Revisá MySQL, permisos y el procedimiento de docs/MODELO-DATOS.md. " . $e->getCode() . "\n");
