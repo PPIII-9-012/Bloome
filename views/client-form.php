@@ -44,6 +44,18 @@
             </div>
             <?php endforeach; ?>
 
+            <div class="field">
+                <label for="gender">Género</label>
+                <select id="gender" name="gender" <?= isset($errors['gender']) ? 'aria-invalid="true" aria-describedby="error-gender"' : '' ?>>
+                    <option value="">Sin dato</option>
+                    <?php foreach (CLIENT_GENDERS as $value => $label): ?>
+                        <option value="<?= e($value) ?>" <?= (string)($client['gender'] ?? '') === $value ? 'selected' : '' ?>><?= e($label) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <small>Opcional. Se usa solo para las estadísticas.</small>
+                <?php if (isset($errors['gender'])): ?><small class="field-error" id="error-gender"><?= e($errors['gender']) ?></small><?php endif; ?>
+            </div>
+
             <div class="field full-width">
                 <label for="notes">Observaciones</label>
                 <textarea id="notes"

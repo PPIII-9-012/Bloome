@@ -1127,3 +1127,19 @@ button {
 .report-totals dt { font-size:13px; color:#5b6b66; }
 .report-totals dd { margin:2px 0 0; font-size:18px; font-weight:700; }
 @media print { .report-print .sale-meta { break-inside:avoid; } }
+
+/* Estadísticas (tarjeta #27) */
+.stats-group h2 { margin:0 0 10px; font-size:18px; }
+.stats-links { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:10px; }
+.stats-link { display:inline-block; padding:10px 18px; border:1px solid #d7e1dd; border-radius:10px; background:white; font-weight:600; text-decoration:none; }
+.stats-link:hover, .stats-link:focus-visible { border-color:#0e3d3e; }
+.stats-note { margin:8px 0 14px; font-size:13px; color:#5b6b66; }
+.stats-chart { margin:12px 0 16px; padding:12px; border:1px solid #d7e1dd; border-radius:10px; background:white; }
+.stats-chart svg { display:block; max-width:760px; }
+.stats-label { font-size:12px; fill:#33423e; }
+.stats-value { font-size:12px; font-weight:600; fill:#33423e; }
+.stats-bar-a, .stats-key-a { fill:#0e3d3e; background:#0e3d3e; }
+.stats-bar-b, .stats-key-b { fill:#e8833a; background:#e8833a; }
+.stats-legend { margin-top:6px; font-size:12px; color:#5b6b66; }
+.stats-key { display:inline-block; width:12px; height:12px; border-radius:2px; vertical-align:middle; margin:0 4px 0 10px; }
+.figma-table tfoot th, .figma-table tfoot td { font-weight:700; border-top:2px solid #d7e1dd; }

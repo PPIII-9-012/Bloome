@@ -18,7 +18,7 @@ $statuses=appointmentStatuses();
 <dl>
 <dt>Teléfono</dt><dd><?= e($client['phone']?:'Sin registrar') ?></dd>
 <dt>Correo electrónico</dt><dd><?= e($client['email']?:'Sin registrar') ?></dd>
-<dt>Fecha de nacimiento</dt><dd><?= $client['birth_date']?e((new DateTimeImmutable($client['birth_date']))->format('d/m/Y')):'Sin registrar' ?></dd>
+<dt>Género</dt><dd><?= e(CLIENT_GENDERS[(string)($client['gender'] ?? '')] ?? 'Sin registrar') ?></dd><dt>Fecha de nacimiento</dt><dd><?= $client['birth_date']?e((new DateTimeImmutable($client['birth_date']))->format('d/m/Y')):'Sin registrar' ?></dd>
 <dt>Cliente desde</dt><dd><?= e((new DateTimeImmutable($client['created_at']))->format('d/m/Y')) ?></dd>
 </dl>
 <?php if(canEdit($user)): ?><a class="button-secondary" href="<?= e(url('client-edit',['id'=>$client['id']])) ?>">Editar</a><?php endif; ?>
