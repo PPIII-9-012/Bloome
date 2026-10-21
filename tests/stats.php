@@ -126,6 +126,10 @@ try {
     foreach (array_slice($pages, 1) as $p) { [$status, $body] = stRequest("page=$p"); stCheck($status === 200 && str_contains($body, '<table') && str_contains($body, '<svg role="img"'), "$p muestra tabla y gráfico"); }
     [, $body] = stRequest('page=estadisticas-ventas&v=categoria');
     stCheck(str_contains($body, 'Corporales &lt;b&gt;') && !str_contains($body, 'Corporales <b>') && str_contains($body, '$ 6.000,00') && str_contains($body, '$ 3.000,00'), 'Escapa HTML almacenado y muestra vendido y cobrado');
+    query("UPDATE service_categories SET name='Tratamientos corporales y faciales ñandú' WHERE id=1");
+    [$status, $body] = stRequest('page=estadisticas-ventas&v=categoria');
+    stCheck($status === 200 && str_contains($body, 'Tratamientos corporales y…') && str_contains($body, 'Tratamientos corporales y faciales ñandú') && str_ends_with(trim($body), '</html>'), 'Etiquetas largas se recortan en el gráfico (sin depender de mbstring) y la página sale completa');
+    query("UPDATE service_categories SET name='Faciales' WHERE id=1");
     [, $body] = stRequest('page=estadisticas-ventas&v=genero');
     stCheck(str_contains($body, 'Sin dato') && str_contains($body, 'Femenino') && str_contains($body, 'Masculino'), 'Por género muestra Sin dato');
     [, $body] = stRequest('page=estadisticas-gastos&v=general');
