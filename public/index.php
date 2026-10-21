@@ -8,7 +8,7 @@ $user = null;
 $errors = [];
 try {
     if (!empty($_SESSION['user_id'])) {
-        $user = query('SELECT id, name, email, role FROM users WHERE id = ? AND active = 1', [$_SESSION['user_id']])->fetch() ?: null;
+        $user = query('SELECT u.id, u.name, u.email, u.role FROM users u LEFT JOIN employees e ON e.user_id=u.id WHERE u.id = ? AND u.active = 1 AND COALESCE(e.active,1)=1', [$_SESSION['user_id']])->fetch() ?: null;
         if (!$user) unset($_SESSION['user_id']);
     }
     if ($method === 'POST' && !validCsrf(input($_POST, 'csrf'))) {
@@ -30,7 +30,7 @@ try {
                 $errors['login'] = 'Demasiados intentos. Esperá 15 minutos antes de volver a intentar.';
             } else {
                 query('INSERT INTO login_attempts (identity_hash, ip_hash) VALUES (?, ?)', [$fingerprint, $ipKey]);
-                $account = query('SELECT * FROM users WHERE email = ? AND active = 1', [$email])->fetch();
+                $account = query('SELECT u.* FROM users u LEFT JOIN employees e ON e.user_id=u.id WHERE u.email = ? AND u.active = 1 AND COALESCE(e.active,1)=1', [$email])->fetch();
                 $password = isset($_POST['password']) && is_string($_POST['password']) ? $_POST['password'] : '';
                 $hash = $account['password_hash'] ?? '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.';
                 if (strlen($password) <= 1024 && password_verify($password, $hash) && $account) {
@@ -54,6 +54,24 @@ try {
         setcookie(session_name(), '', ['expires' => time() - 3600, 'path' => '/', 'httponly' => true, 'secure' => getenv('APP_SECURE_COOKIE') === '1', 'samesite' => 'Lax']);
         redirect('login');
     }
+    if (in_array($page, ['employees','employee','employee-new','employee-edit','profile','profile-edit','employee-vacation-new','employee-vacation-delete','employee-schedule-save'], true)) {
+        require ROOT . '/app/employee-routes.php';
+    }
+    if (in_array($page, ['holidays','holiday-new','holiday-delete','schedule'], true)) {
+        require ROOT . '/app/schedule-routes.php';
+    }
+    if (in_array($page, ['sale-new','sale','sales'], true)) {
+        require ROOT . '/app/sale-routes.php';
+    }
+    if (in_array($page, ['caja','caja-movement','caja-close'], true)) {
+        require ROOT . '/app/cash-routes.php';
+    }
+    if (in_array($page, ['sale-pay','sale-void','deposit-new'], true)) {
+        require ROOT . '/app/payment-routes.php';
+    }
+    if (in_array($page, ['appointment-new','appointment-edit','appointment-cancel'], true)) {
+        require ROOT . '/app/appointment-routes.php';
+    }
     if ($page === 'dashboard' && $method === 'GET') {
         $today = date('Y-m-d');
         $stats = [
@@ -61,7 +79,7 @@ try {
             'appointments' => query("SELECT COUNT(*) FROM appointments WHERE starts_at >= ? AND starts_at < ? AND status <> 'cancelled'", [$today, date('Y-m-d', strtotime('+1 day'))])->fetchColumn(),
             'services' => query('SELECT COUNT(*) FROM services WHERE active = 1')->fetchColumn(),
         ];
-        $appointments = query('SELECT a.*, c.first_name, c.last_name, s.name AS service_name, u.name AS employee_name FROM appointments a JOIN clients c ON c.id=a.client_id JOIN services s ON s.id=a.service_id JOIN users u ON u.id=a.employee_id WHERE a.starts_at >= ? AND a.starts_at < ? ORDER BY a.starts_at LIMIT 6', [$today, date('Y-m-d', strtotime('+1 day'))])->fetchAll();
+        $appointments = appointmentsBetween($today, date('Y-m-d', strtotime('+1 day')), 6);
         render('dashboard', compact('user', 'page', 'stats', 'appointments') + ['title' => 'Tu centro, en un vistazo']);
     } elseif ($page === 'clients' && $method === 'GET') {
         $search = substr(input($_GET, 'q'), 0, 100);
@@ -108,9 +126,16 @@ try {
     } elseif ($page === 'agenda' && $method === 'GET') {
         $date = input($_GET, 'date', date('Y-m-d'));
         if (!validDate($date)) $date = date('Y-m-d');
-        $next = (new DateTimeImmutable($date))->modify('+1 day')->format('Y-m-d');
-        $appointments = query('SELECT a.*, c.first_name, c.last_name, s.name AS service_name, u.name AS employee_name FROM appointments a JOIN clients c ON c.id=a.client_id JOIN services s ON s.id=a.service_id JOIN users u ON u.id=a.employee_id WHERE starts_at >= ? AND starts_at < ? ORDER BY starts_at', [$date, $next])->fetchAll();
-        render('agenda', compact('user', 'page', 'date', 'appointments') + ['title' => 'Agenda']);
+        $mode = input($_GET, 'mode', 'day');
+        if (!in_array($mode, ['day','week','month'], true)) $mode='day';
+        $employeeFilter = input($_GET, 'employee');
+        $statusFilter = input($_GET, 'status');
+        $employees = query('SELECT e.id,u.name,e.active,u.active AS user_active FROM employees e JOIN users u ON u.id=e.user_id ORDER BY u.name,e.id')->fetchAll();
+        $filterError = ($employeeFilter !== '' && (!ctype_digit($employeeFilter) || !in_array($employeeFilter,array_map('strval',array_column($employees,'id')),true))) || ($statusFilter !== '' && !isset(appointmentStatuses()[$statusFilter]));
+        $period = agendaPeriod($date, $mode);
+        if ($filterError) http_response_code(422);
+        $appointments = $filterError ? [] : appointmentsBetween($period['from'], $period['until'], null, $employeeFilter === '' ? null : (int)$employeeFilter, $statusFilter === '' ? null : $statusFilter);
+        render('agenda', compact('user', 'page', 'date', 'mode', 'employees', 'employeeFilter', 'statusFilter', 'filterError', 'period', 'appointments') + ['title' => 'Agenda']);
     } else {
         http_response_code(404);
         render('message', compact('user', 'page') + ['title' => 'Página no encontrada', 'message' => 'Este enlace no está disponible. Podés volver al inicio.']);

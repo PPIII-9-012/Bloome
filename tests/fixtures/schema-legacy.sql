@@ -1,0 +1,132 @@
+CREATE TABLE IF NOT EXISTS users (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(190) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role ENUM('admin','reception','professional') NOT NULL DEFAULT 'reception',
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    identity_hash CHAR(64) NOT NULL,
+    ip_hash CHAR(64) NOT NULL,
+    attempted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX attempts_identity (identity_hash, attempted_at),
+    INDEX attempts_ip (ip_hash, attempted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS clients (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(190) NULL,
+    phone VARCHAR(30) NULL,
+    birth_date DATE NULL,
+    notes TEXT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX clients_name (last_name, first_name),
+    INDEX clients_email (email),
+    INDEX clients_phone (phone)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS services (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(120) NOT NULL,
+    duration_minutes SMALLINT UNSIGNED NOT NULL,
+    price DECIMAL(12,2) NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    CONSTRAINT valid_duration CHECK (duration_minutes > 0),
+    CONSTRAINT valid_price CHECK (price >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS appointments (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    client_id BIGINT UNSIGNED NOT NULL,
+    employee_id BIGINT UNSIGNED NOT NULL,
+    service_id BIGINT UNSIGNED NOT NULL,
+    starts_at DATETIME NOT NULL,
+    ends_at DATETIME NOT NULL,
+    status ENUM('pending','confirmed','completed','cancelled') NOT NULL DEFAULT 'pending',
+    notes TEXT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT appointments_client FOREIGN KEY (client_id) REFERENCES clients(id),
+    CONSTRAINT appointments_employee FOREIGN KEY (employee_id) REFERENCES users(id),
+    CONSTRAINT appointments_service FOREIGN KEY (service_id) REFERENCES services(id),
+    CONSTRAINT valid_interval CHECK (ends_at > starts_at),
+    INDEX appointments_schedule (employee_id, starts_at, ends_at),
+    INDEX appointments_date (starts_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS seed_runs (
+    name VARCHAR(100) PRIMARY KEY,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS employees (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL UNIQUE,
+    phone VARCHAR(30) NULL,
+    specialty VARCHAR(120) NULL,
+    hire_date DATE NULL,
+    commission_percentage DECIMAL(5,2) NULL,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    appointment_color CHAR(7) NOT NULL DEFAULT '#0E3D3E',
+    CONSTRAINT employees_user FOREIGN KEY (user_id) REFERENCES users(id),
+    CONSTRAINT valid_commission CHECK (commission_percentage IS NULL OR commission_percentage BETWEEN 0 AND 100)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS employee_audit (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    actor_id BIGINT UNSIGNED NOT NULL,
+    user_id BIGINT UNSIGNED NOT NULL,
+    action VARCHAR(30) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX employee_audit_user (user_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS holidays (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    holiday_date DATE NOT NULL UNIQUE,
+    description VARCHAR(190) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX holidays_date (holiday_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS employee_vacations (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    description VARCHAR(190) NOT NULL,
+    starts_at DATE NOT NULL,
+    ends_at DATE NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT vacations_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT valid_vacation_dates CHECK (ends_at >= starts_at),
+    INDEX vacations_interval (user_id, starts_at, ends_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS employee_schedules (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    day_of_week TINYINT UNSIGNED NOT NULL,
+    start_time TIME NULL,
+    end_time TIME NULL,
+    is_working BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT schedules_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY employee_day (user_id, day_of_week),
+    CONSTRAINT valid_emp_day CHECK (day_of_week BETWEEN 1 AND 7)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS business_schedules (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    day_of_week TINYINT UNSIGNED NOT NULL UNIQUE,
+    start_time TIME NULL,
+    end_time TIME NULL,
+    is_open BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT valid_biz_day CHECK (day_of_week BETWEEN 1 AND 7)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

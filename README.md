@@ -8,11 +8,11 @@ Primera entrega de código basada en la página SISTEMA del draft. PHP 8.4 + MyS
 - Sesiones, protección CSRF, escape de HTML y permisos de escritura para administrador/recepción.
 - Inicio con conteos y citas obtenidos de la base de datos.
 - Clientes: listado, búsqueda, paginación, alta y edición con validación en servidor.
-- Agenda diaria de **consulta** con selector de fecha y estados.
+- Agenda por día, semana y mes con filtros de empleado y estado; alta, edición y cancelación de turnos con múltiples servicios y control de disponibilidad.
 - Esquema inicial, instalador de administrador y datos ficticios opcionales.
 - Interfaz adaptable a escritorio y móvil; errores y estados vacíos.
 
-Pendiente: recuperación de contraseña, ficha integral, crear/editar citas, conflictos de disponibilidad, múltiples servicios por cita, empleados/roles administrables, caja, ventas, cobros, estadísticas y configuración. El menú identifica lo pendiente y no simula operaciones completadas.
+Pendiente: recuperación de contraseña, ficha integral, filtro de categoría del calendario, catálogo completo, caja, ventas, cobros, estadísticas y configuración restante. El menú identifica lo pendiente y no simula operaciones completadas.
 
 El roadmap propone Laravel para el sistema completo. Este primer corte es PHP sin dependencias de Composer para que se pueda inspeccionar y ejecutar fácilmente. Antes de ampliar ventas y caja, decidir si trasladar esta base a Laravel; no mezclar dos arquitecturas en paralelo.
 
@@ -74,6 +74,13 @@ Rutas iniciales: `/?page=login`, `/?page=dashboard`, `/?page=clients`, `/?page=c
 
 ```sh
 php tests/run.php
+php tests/finance.php   # modelo financiero; necesita MySQL y MYSQL_ROOT_PASSWORD
+php tests/sales.php     # nueva venta y detalle (HTTP); mismas credenciales
+php tests/payments.php  # cobros parciales, señas y caja (HTTP); mismas credenciales
+php tests/voids.php     # anulación de ventas (HTTP); mismas credenciales
+php tests/sales-list.php  # listado y búsqueda de ventas (HTTP); mismas credenciales
+php tests/cash.php   # caja diaria, movimientos y gastos (HTTP); mismas credenciales
+php tests/cash-close.php  # arqueo y cierre de caja (HTTP); mismas credenciales
 ```
 
 Las pruebas unitarias no necesitan MySQL. Comprobar además con MySQL real: instalación, acceso, alta/edición, búsqueda, persistencia al recargar, agenda y permisos. El SQL se mantiene idempotente para instalar una base nueva; no sustituye un sistema de migraciones para futuras modificaciones de estructura.
@@ -82,4 +89,12 @@ Con el servidor local iniciado y `.env` configurado, `php tests/http.php` ejecut
 
 Los usuarios profesionales tienen acceso de lectura al listado de clientes y agenda en este piloto de un solo centro. Ese alcance debe revisarse antes de usar datos personales reales. No hay aislamiento entre múltiples centros.
 
-Próximo incremento: ficha de cliente y CRUD de citas con transacciones y validación de solapamientos, horarios y ausencias. No habilitar reservas operativas hasta completar esas reglas.
+Para reservar, configurar los horarios reales del centro y de cada empleado, descansos y ausencias. No se crean horarios de trabajo automáticamente. Calendario y filtros (#11) en revisión: ver [alcance y pendientes](docs/CALENDARIO.md).
+
+## Empleados y perfil
+
+Gestión administrativa en `/?page=employees`; perfil propio desde el nombre de usuario en la barra superior. Antes de usar esta versión sobre una base existente, seguir [la migración del modelo](docs/MODELO-DATOS.md), con respaldo y escrituras detenidas. Ver [instalación, permisos y compatibilidad con el issue #3](docs/EMPLEADOS.md).
+
+## Turnos en desarrollo
+
+Alta, edición y cancelación disponibles para administración/recepción desde la agenda, con varios servicios y control transaccional de solapamientos. Ver [alcance, instalación y pendientes](docs/TURNOS.md). Descansos/jornada partida implementados con un descanso por día; ver [configuración y migración](docs/DESCANSOS.md). Pendiente revisión del equipo; las vistas de semana/mes y filtros de empleado/estado están implementados en el avance de #11; categoría y revisión visual pendientes.
