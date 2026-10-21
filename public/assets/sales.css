@@ -26,7 +26,7 @@
 .inline-form p{flex:1 1 100%;margin:0}
 .inline-form .field{margin:0}
 /* Listado de ventas (tarjeta #17) */
-.sales-filters{display:grid;grid-template-columns:2fr 1.2fr 1fr 1fr auto;gap:.75rem 1rem;align-items:end;margin-bottom:1rem}
+.sales-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem 1rem;align-items:end;margin-bottom:1rem}
 .sales-filters .field{margin:0}
 .sales-filters input,.sales-filters select{width:100%;min-width:0}
 .sales-filter-actions{display:flex;align-items:center;gap:.75rem}
@@ -58,3 +58,9 @@
 .cash-summary td,.cash-table td,.cash-summary th{display:block;padding:0;border:0}
 .cash-summary td::before,.cash-table td::before{content:attr(data-label);display:block;font-size:12px;font-weight:600;color:var(--text-primary)}
 }
+
+.sales-totals{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin:0 0 1rem}
+.sales-totals div{background:#fff;border:1px solid var(--line,#e3e3e3);border-radius:12px;padding:.75rem 1rem}
+.sales-totals dt{font-size:.85rem;opacity:.75}
+.sales-totals dd{margin:.15rem 0 0;font-size:1.25rem;font-weight:600}
+@media (max-width:600px){.sales-totals{grid-template-columns:1fr}}

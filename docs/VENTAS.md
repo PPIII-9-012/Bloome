@@ -65,3 +65,7 @@ cita y precio no modificable por formulario.
 ## Listado de ventas (tarjeta #17)
 
 `?page=sales` (menú "Ventas", solo administración y recepción): 12 ventas por página, de la más nueva a la más vieja. Se busca por cliente (nombre y apellido en cualquier orden) o por número de venta (`#16`), y se filtra por estado de cobro (sin cobrar, cobro parcial, cobrada, anulada) y por rango de fechas inclusivo. Los filtros se conservan al paginar. El saldo se calcula igual que en el detalle.
+
+### Filtros por empleado y medio de pago, y totales
+
+Además se filtra por **empleado** (el de la venta) y por **medio de pago** (ventas que recibieron algún cobro vigente con ese medio; un cobro reintegrado ya no cuenta). Sobre todo el resultado filtrado, no solo la página, se muestran tres totales: **vendido** (suma de ventas vigentes), **cobrado** (lo cobrado de esas ventas, sin pasar del total de cada una) y **pendiente** (la diferencia). Las ventas anuladas no suman. Con el filtro de medio de pago, "cobrado" cuenta todo lo cobrado de esas ventas, no solo lo pagado con ese medio.

@@ -11,9 +11,16 @@ $pageUrl=fn(int $n)=>url('sales',$active+['p'=>$n]);
 <div class="field"><label for="status">Estado</label><select id="status" name="status"><option value="">Todos</option><?php foreach(COLLECTION_LABELS as $value=>$label): ?><option value="<?= e($value) ?>" <?= $filters['status']===$value?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?></select></div>
 <div class="field"><label for="from">Desde</label><input id="from" type="date" name="from" value="<?= e($filters['from']) ?>"></div>
 <div class="field"><label for="to">Hasta</label><input id="to" type="date" name="to" value="<?= e($filters['to']) ?>"></div>
+<div class="field"><label for="employee">Empleado</label><select id="employee" name="employee"><option value="">Todos</option><?php foreach($employeeOptions as $opt): ?><option value="<?= e($opt['id']) ?>" <?= $filters['employee']===(string)$opt['id']?'selected':'' ?>><?= e($opt['name']) ?></option><?php endforeach; ?></select></div>
+<div class="field"><label for="method">Medio de pago</label><select id="method" name="method"><option value="">Todos</option><?php foreach(PAYMENT_METHODS as $value=>$label): ?><option value="<?= e($value) ?>" <?= $filters['method']===$value?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?></select></div>
 <div class="sales-filter-actions"><button class="button-secondary" type="submit">Buscar</button><?php if($active): ?><a class="clear-filter-link" href="<?= e(url('sales')) ?>">✕ Limpiar</a><?php endif; ?></div>
 </form>
 <?php if($filterError): ?><div class="notice error" role="alert"><?= e($filterError) ?></div><?php endif; ?>
+<dl class="sales-totals" aria-label="Totales del resultado">
+<div><dt>Vendido</dt><dd><?= e(moneyFormat($totals['sold'])) ?></dd></div>
+<div><dt>Cobrado</dt><dd><?= e(moneyFormat($totals['collected'])) ?></dd></div>
+<div><dt>Pendiente</dt><dd><?= e(moneyFormat($totals['pending'])) ?></dd></div>
+</dl>
 <div class="figma-table-card">
 <?php if(!$sales): ?>
 <div class="empty-state" role="status"><h3><?= $active?'No encontramos ventas con esos filtros.':'Todavía no hay ventas registradas.' ?></h3><p><?= $active?'Probá con otro nombre, estado o rango de fechas.':'Registrá la primera desde la agenda, la ficha de un cliente o con "Nueva venta".' ?></p></div>
