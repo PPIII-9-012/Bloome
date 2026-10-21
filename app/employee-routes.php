@@ -13,7 +13,7 @@ $deny = static function (int $status, string $message) use ($user, $page): never
 if (!$self && !canManageEmployees($user)) $deny(403, 'Solo un administrador puede gestionar empleados.');
 if (!in_array($method, ['GET', 'POST'], true) || ($method === 'POST' && !$editing && !$isPostAction)) $deny(405, 'Método no permitido.');
 // Identity and protected fields are never accepted from the self-service request.
-if ($self && (array_key_exists('id', $_GET) || array_intersect(['id','user_id','employee_id','role','active','appointment_color','password','password_hash'], array_keys($_POST)))) $deny(403, 'El perfil propio solo permite editar nombre, correo y teléfono.');
+if ($self && (array_key_exists('id', $_GET) || array_intersect(['id','user_id','employee_id','role','active','appointment_color','specialty','hire_date','commission_percentage','password','password_hash'], array_keys($_POST)))) $deny(403, 'El perfil propio solo permite editar nombre, correo y teléfono.');
 if ($page === 'employees') {
     $search = substr(input($_GET, 'q'), 0, 100);
     $filter = input($_GET, 'state', 'all');
@@ -68,7 +68,7 @@ if ($page === 'employee-schedule-save' && $method === 'POST') {
     redirect('employee', ['id' => $targetId]);
 }
 $id = $self ? (int)$user['id'] : (int)input($_GET, 'id');
-$employee = $new ? ['name'=>'','email'=>'','phone'=>'','role'=>'professional','active'=>'1','appointment_color'=>'#0E3D3E'] : employeeRecord($id);
+$employee = $new ? ['name'=>'','email'=>'','phone'=>'','role'=>'professional','active'=>'1','appointment_color'=>'#0E3D3E','specialty'=>'','hire_date'=>'','commission_percentage'=>''] : employeeRecord($id);
 if (!$employee) $deny(404, 'Revisá el enlace o volvé al listado.');
 if ($method === 'POST') {
     [$data, $errors] = validateEmployee($_POST, $self, $new);
