@@ -6,7 +6,7 @@ $label=COLLECTION_LABELS[$balance['collection']]??$balance['collection'];
 <div class="employee-heading"><h1>Venta #<?= e($sale['id']) ?></h1><p><?= e((new DateTimeImmutable($sale['created_at']))->format('d/m/Y H:i')) ?> · registrada por <?= e($sale['created_by_name']) ?></p></div>
 <div class="figma-action-bar client-actions">
 <?php if($sale['status']==='confirmed' && $balance['balance']>0): ?><a class="figma-action-btn" href="<?= e(url('sale-pay',['id'=>$sale['id']])) ?>"><span>Cobrar</span></a><?php else: ?><span class="figma-action-btn disabled" aria-disabled="true"><span>Cobrar</span></span><?php endif; ?>
-<span class="figma-action-btn disabled" aria-disabled="true"><span>Anular</span> <small class="nav-tag-pending">Próx.</small></span>
+<?php if($sale['status']==='confirmed' && $user['role']==='admin'): ?><a class="figma-action-btn" href="<?= e(url('sale-void',['id'=>$sale['id']])) ?>"><span>Anular</span></a><?php endif; ?>
 </div>
 <div class="client-details">
 <section class="form-card">

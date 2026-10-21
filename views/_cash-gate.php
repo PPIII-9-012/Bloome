@@ -2,7 +2,7 @@
 <?php if(!$session): ?>
 <section class="notice" role="status" aria-labelledby="cash-closed-title">
 <h2 id="cash-closed-title">No hay una caja abierta</h2>
-<p>Para registrar cobros primero hay que abrir la caja del día.</p>
+<p>Para registrar cobros, señas o reintegros primero hay que abrir la caja del día.</p>
 <form method="post" class="inline-form">
 <?= csrfField() ?>
 <input type="hidden" name="intent" value="open-cash">

@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-// Cobrar una venta, aplicarle una seña y registrar la seña de una cita (#16). Autenticación y CSRF: front controller.
+// Cobrar una venta, aplicarle una seña, anularla (#18) y registrar la seña de una cita (#16). Autenticación y CSRF: front controller.
 $deny = static function(int $status,string $message) use ($user,$page): never {
     http_response_code($status);
     render('message',compact('user','page','message')+['title'=>'Cobros']); exit;
@@ -38,6 +38,31 @@ if ($page==='sale-pay') {
     }
     $deposits=clientDeposits((int)$sale['client_id']);
     render('sale-pay',compact('user','page','sale','form','key','errors','session','deposits','backUrl')+['title'=>'Cobrar venta #'.$sale['id']]);
+    exit;
+}
+
+if ($page==='sale-void') {
+    $id=filter_var(input($_GET,'id'),FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+    $sale=$id?saleRecord($id):false;
+    if (!$sale) $deny(404,'Venta no encontrada.');
+    if ($user['role']!=='admin') $deny(403,'Solo administración puede anular ventas.');
+    if ($sale['status']==='voided') $deny(409,'La venta ya está anulada.');
+    $backUrl=url('sale',['id'=>$sale['id']]); $reason='';
+    if ($method==='POST') {
+        $reason=input($_POST,'reason');
+        try {
+            if (input($_POST,'intent')==='open-cash') { openCashSession((int)$user['id'],input($_POST,'opening_cash','0')); flash('Caja abierta.'); redirect('sale-void',['id'=>$sale['id']]); }
+            voidSale((int)$user['id'],(int)$sale['id'],$reason);
+            flash('Venta anulada. Los cobros se reintegraron en la caja y las señas quedaron disponibles.'); redirect('sale',['id'=>$sale['id']]);
+        } catch (DomainException $e) {
+            if (in_array($e->getCode(),[403,404],true)) $deny($e->getCode(),$e->getMessage());
+            http_response_code($e->getCode()); $errors[]=$e->getMessage(); $session=currentCashSession();
+        }
+    }
+    $payments=array_values(array_filter(salePayments((int)$sale['id']),fn($p)=>!$p['released_at'] && $p['status']==='paid'));
+    $refundCents=array_sum(array_map(fn($p)=>$p['kind']==='payment'?decimalToCents($p['amount']):0,$payments));
+    $depositCents=array_sum(array_map(fn($p)=>$p['kind']==='deposit'?decimalToCents($p['amount']):0,$payments));
+    render('sale-void',compact('user','page','sale','reason','errors','session','refundCents','depositCents','backUrl')+['title'=>'Anular venta #'.$sale['id']]);
     exit;
 }
 
