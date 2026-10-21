@@ -77,6 +77,7 @@ php tests/run.php
 php tests/finance.php   # modelo financiero; necesita MySQL y MYSQL_ROOT_PASSWORD
 php tests/sales.php     # nueva venta y detalle (HTTP); mismas credenciales
 php tests/payments.php  # cobros parciales, señas y caja (HTTP); mismas credenciales
+php tests/voids.php     # anulación de ventas (HTTP); mismas credenciales
 ```
 
 Las pruebas unitarias no necesitan MySQL. Comprobar además con MySQL real: instalación, acceso, alta/edición, búsqueda, persistencia al recargar, agenda y permisos. El SQL se mantiene idempotente para instalar una base nueva; no sustituye un sistema de migraciones para futuras modificaciones de estructura.
