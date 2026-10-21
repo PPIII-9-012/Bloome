@@ -10,6 +10,25 @@ if (!canEdit($user)) $deny(403,'Solo administración y recepción pueden ver y o
 if (!in_array($method,['GET','POST'],true)) $deny(405,'Método no permitido.');
 $errors=[]; $isAdmin=$user['role']==='admin';
 
+if (in_array($page,['caja-print','caja-export'],true)) {
+    if ($method!=='GET') $deny(405,'Método no permitido.');
+    $cashView=cashSessionView((int)input($_GET,'session','0'));
+    if (!$cashView) $deny(404,'Todavía no hay cajas registradas.');
+    $filters=['method'=>input($_GET,'method'),'kind'=>input($_GET,'kind')];
+    if (!isset(PAYMENT_METHODS[$filters['method']])) $filters['method']='';
+    if (!isset(CASH_KIND_LABELS[$filters['kind']])) $filters['kind']='';
+    $summary=cashSummary((int)$cashView['id']);
+    [$movements,$count]=cashLedger((int)$cashView['id'],$filters,1,true);
+    if ($page==='caja-export') {
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="caja-'.$cashView['id'].'-'.date('Y-m-d').'.csv"');
+        echo cashCsv($movements,$summary); exit;
+    }
+    $expected=cashExpectedCents((int)$cashView['id']);
+    render('cash-print',compact('user','page','cashView','summary','movements','count','filters','expected')+['title'=>'Informe de caja']);
+    exit;
+}
+
 if ($page==='caja-movement') {
     $session=currentCashSession();
     $key=bin2hex(random_bytes(16));

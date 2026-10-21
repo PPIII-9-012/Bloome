@@ -11,6 +11,10 @@ $fmt=fn(string $d)=>(new DateTimeImmutable($d))->format('d/m/Y H:i');
 <a class="figma-action-btn" href="<?= e(url('caja-movement',['kind'=>'withdrawal'])) ?>"><span>Registrar retiro</span></a>
 <a class="figma-action-btn" href="<?= e(url('caja-close')) ?>"><span>Cerrar caja</span></a>
 <?php endif; ?>
+<?php if($cashView): ?>
+<a class="figma-action-btn" href="<?= e(url('caja-print',['session'=>$cashView['id']]+$active)) ?>"><span>Imprimir</span></a>
+<a class="figma-action-btn" href="<?= e(url('caja-export',['session'=>$cashView['id']]+$active)) ?>"><span>Exportar CSV</span></a>
+<?php endif; ?>
 </div>
 <?php if ($errors): ?><div class="notice error" role="alert"><ul><?php foreach($errors as $error): ?><li><?= e($error) ?></li><?php endforeach; ?></ul></div><?php endif; ?>
 <?php if(!$open): ?>

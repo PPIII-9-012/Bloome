@@ -4,6 +4,8 @@ $pageUrl=fn(int $n)=>url('sales',$active+['p'=>$n]);
 ?>
 <div class="figma-action-bar">
 <a class="figma-action-btn" href="<?= e(url('sale-new')) ?>"><span>Nueva venta</span></a>
+<a class="figma-action-btn" href="<?= e(url('sales-print',$active)) ?>"><span>Imprimir</span></a>
+<a class="figma-action-btn" href="<?= e(url('sales-export',$active)) ?>"><span>Exportar CSV</span></a>
 </div>
 <form method="get" class="form-card sales-filters" role="search" aria-label="Buscar ventas">
 <input type="hidden" name="page" value="sales">

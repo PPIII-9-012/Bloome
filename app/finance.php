@@ -235,19 +235,21 @@ function cashSummary(int $sessionId): array
 }
 
 /** Movimientos de una caja con origen (venta o cita), categoría, autor y si ya fueron corregidos. Filtros: method, kind. Devuelve [filas, total]. */
-function cashLedger(int $sessionId, array $f, int $page): array
+function cashLedger(int $sessionId, array $f, int $page, bool $all = false): array
 {
     $where = 'm.cash_session_id=?'; $params = [$sessionId];
     if (isset(PAYMENT_METHODS[$f['method'] ?? ''])) { $where .= ' AND m.method=?'; $params[] = $f['method']; }
     if (isset(CASH_KIND_LABELS[$f['kind'] ?? ''])) { $where .= ' AND m.kind=?'; $params[] = $f['kind']; }
     $count = (int)query("SELECT COUNT(*) FROM cash_movements m WHERE $where", $params)->fetchColumn();
-    $offset = (max(1, $page) - 1) * CASH_PER_PAGE;
+    $limit = $all ? REPORT_MAX_ROWS : CASH_PER_PAGE;
+    $offset = $all ? 0 : (max(1, $page) - 1) * CASH_PER_PAGE;
+    $order = $all ? 'ASC' : 'DESC';
     $rows = query("SELECT m.*, u.name AS user_name, cat.name AS category_name, pa.sale_id, pa.appointment_id, r.id AS reversed_by_id
         FROM cash_movements m JOIN users u ON u.id=m.created_by
         LEFT JOIN expense_categories cat ON cat.id=m.category_id
         LEFT JOIN payment_allocations pa ON pa.id=(SELECT MIN(x.id) FROM payment_allocations x WHERE x.payment_id=m.payment_id)
         LEFT JOIN cash_movements r ON r.reverses_id=m.id
-        WHERE $where ORDER BY m.id DESC LIMIT " . CASH_PER_PAGE . " OFFSET $offset", $params)->fetchAll();
+        WHERE $where ORDER BY m.id $order LIMIT $limit OFFSET $offset", $params)->fetchAll();
     return [$rows, $count];
 }
 
@@ -531,12 +533,14 @@ function clientDeposits(int $clientId): array
 }
 
 const SALES_PER_PAGE = 12;
+/** Tope de filas de los informes imprimibles y exportables (ventas y caja). */
+const REPORT_MAX_ROWS = 5000;
 
 /**
  * Listado de ventas con búsqueda y filtros. $f: q (número de venta o nombre del cliente), status (unpaid|partial|paid|voided),
  * from y to (Y-m-d, inclusivos). Devuelve [filas, total de resultados]. El estado de cobro se calcula igual que saleBalance.
  */
-function searchSales(array $f, int $page): array
+function searchSales(array $f, int $page, bool $all = false): array
 {
     $where = []; $params = [];
     $q = trim((string)($f['q'] ?? ''));
@@ -563,21 +567,76 @@ function searchSales(array $f, int $page): array
         $where[] = "EXISTS (SELECT 1 FROM payment_allocations pm JOIN payments pmp ON pmp.id=pm.payment_id WHERE pm.sale_id=x.id AND pm.released_at IS NULL AND pmp.status='paid' AND pmp.payment_method=?)";
         $params[] = $f['method'];
     }
-    $base = "FROM (SELECT s.id, s.created_at, s.total, s.status, s.appointment_id, s.employee_id, c.id AS client_id, c.first_name, c.last_name,
+    $base = "FROM (SELECT s.id, s.created_at, s.total, s.status, s.appointment_id, s.employee_id, eu.name AS employee_name, c.id AS client_id, c.first_name, c.last_name,
         COALESCE((SELECT SUM(pa.amount) FROM payment_allocations pa JOIN payments p ON p.id=pa.payment_id WHERE pa.sale_id=s.id AND pa.released_at IS NULL AND p.status='paid'),0) AS paid
-        FROM sales s JOIN clients c ON c.id=s.client_id) x WHERE " . implode(' AND ', $where);
+        FROM sales s JOIN clients c ON c.id=s.client_id LEFT JOIN employees ee ON ee.id=s.employee_id LEFT JOIN users eu ON eu.id=ee.user_id) x WHERE " . implode(' AND ', $where);
     $count = (int)query("SELECT COUNT(*) $base", $params)->fetchColumn();
     // Totales de TODO el conjunto filtrado (no solo de la página). Las ventas anuladas no suman.
     $t = query("SELECT COALESCE(SUM(CASE WHEN x.status='confirmed' THEN x.total END),0) AS sold,
         COALESCE(SUM(CASE WHEN x.status='confirmed' THEN LEAST(x.paid, x.total) END),0) AS collected $base", $params)->fetch();
     $sold = decimalToCents((string)$t['sold']); $collected = decimalToCents((string)$t['collected']);
     $totals = ['sold' => $sold, 'collected' => $collected, 'pending' => $sold - $collected];
-    $offset = (max(1, $page) - 1) * SALES_PER_PAGE;
-    $rows = query("SELECT x.* $base ORDER BY x.created_at DESC, x.id DESC LIMIT " . SALES_PER_PAGE . " OFFSET $offset", $params)->fetchAll();
+    $limit = $all ? REPORT_MAX_ROWS : SALES_PER_PAGE;
+    $offset = $all ? 0 : (max(1, $page) - 1) * SALES_PER_PAGE;
+    $rows = query("SELECT x.* $base ORDER BY x.created_at DESC, x.id DESC LIMIT $limit OFFSET $offset", $params)->fetchAll();
     foreach ($rows as &$row) {
         $total = decimalToCents($row['total']); $paid = decimalToCents($row['paid']);
         $row['collection'] = $row['status'] === 'voided' ? 'voided' : collectionStatus($total, $paid);
         $row['balance'] = $row['status'] === 'voided' ? 0 : $total - $paid;
     }
     return [$rows, $count, $totals];
+}
+
+
+/** Importe para una planilla en español: sin símbolo ni separador de miles, con coma decimal (1234,50). */
+function csvMoney(int $cents): string
+{
+    return ($cents < 0 ? '-' : '') . intdiv(abs($cents), 100) . ',' . str_pad((string)(abs($cents) % 100), 2, '0', STR_PAD_LEFT);
+}
+
+/** Escribe filas en CSV (UTF-8 con BOM, separador ';' para planillas en español, celdas a salvo de fórmulas). */
+function reportCsv(array $rows): string
+{
+    $out = fopen('php://temp', 'r+');
+    fwrite($out, "\xEF\xBB\xBF");
+    foreach ($rows as $row) fputcsv($out, array_map(fn($cell) => csvSafeCell((string)$cell), $row), ';', '"', '');
+    rewind($out);
+    $csv = stream_get_contents($out);
+    fclose($out);
+    return str_replace("\n", "\r\n", $csv);
+}
+
+/** CSV del listado de ventas ya filtrado, con una fila final de totales. $totals: sold, collected, pending (centavos). */
+function salesCsv(array $sales, array $totals): string
+{
+    $rows = [['N.º', 'Fecha', 'Cliente', 'Empleado', 'Total', 'Cobrado', 'Saldo', 'Estado']];
+    foreach ($sales as $sale) {
+        $rows[] = [$sale['id'], (new DateTimeImmutable($sale['created_at']))->format('d/m/Y H:i'), trim($sale['first_name'] . ' ' . $sale['last_name']), (string)($sale['employee_name'] ?? ''),
+            csvMoney(decimalToCents($sale['total'])), csvMoney(decimalToCents($sale['paid'])), csvMoney($sale['balance']), COLLECTION_LABELS[$sale['collection']] ?? $sale['collection']];
+    }
+    $rows[] = ['', '', '', 'Total (sin anuladas)', csvMoney($totals['sold']), csvMoney($totals['collected']), csvMoney($totals['pending']), ''];
+    return reportCsv($rows);
+}
+
+/** Origen legible de un movimiento de caja: venta, seña de una cita o manual. */
+function cashMovementOrigin(array $movement): string
+{
+    if ($movement['sale_id']) return 'Venta #' . $movement['sale_id'] . ($movement['kind'] === 'refund' ? ' (anulada)' : '');
+    if ($movement['appointment_id']) return 'Seña · cita #' . $movement['appointment_id'];
+    return 'Manual' . ($movement['category_name'] ? ' · ' . $movement['category_name'] : '');
+}
+
+/** CSV de los movimientos de una caja, seguido del resumen por medio de pago. */
+function cashCsv(array $movements, array $summary): string
+{
+    $rows = [['Fecha', 'Tipo', 'Origen', 'Detalle', 'Medio', 'Entrada', 'Salida', 'Usuario']];
+    foreach ($movements as $m) {
+        $cents = decimalToCents($m['amount']);
+        $rows[] = [(new DateTimeImmutable($m['created_at']))->format('d/m/Y H:i'), CASH_KIND_LABELS[$m['kind']] . ($m['reverses_id'] ? ' (corrección de #' . $m['reverses_id'] . ')' : '') . ($m['reversed_by_id'] ? ' (corregido)' : ''),
+            cashMovementOrigin($m), (string)($m['description'] ?? ''), PAYMENT_METHODS[$m['method']], $m['direction'] === 'in' ? csvMoney($cents) : '', $m['direction'] === 'out' ? csvMoney($cents) : '', $m['user_name']];
+    }
+    $rows[] = [];
+    $rows[] = ['Resumen por medio de pago', '', '', '', 'Medio', 'Entradas', 'Salidas', 'Neto'];
+    foreach (PAYMENT_METHODS as $method => $label) $rows[] = ['', '', '', '', $label, csvMoney($summary[$method]['in']), csvMoney($summary[$method]['out']), csvMoney($summary[$method]['net'])];
+    return reportCsv($rows);
 }

@@ -118,10 +118,10 @@ try {
     if (in_array($page, ['holidays','holiday-new','holiday-delete','schedule'], true)) {
         require ROOT . '/app/schedule-routes.php';
     }
-    if (in_array($page, ['sale-new','sale','sales'], true)) {
+    if (in_array($page, ['sale-new','sale','sales','sales-print','sales-export'], true)) {
         require ROOT . '/app/sale-routes.php';
     }
-    if (in_array($page, ['caja','caja-movement','caja-close'], true)) {
+    if (in_array($page, ['caja','caja-movement','caja-close','caja-print','caja-export'], true)) {
         require ROOT . '/app/cash-routes.php';
     }
     if (in_array($page, ['sale-pay','sale-void','deposit-new'], true)) {

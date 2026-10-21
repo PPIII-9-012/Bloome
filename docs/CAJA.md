@@ -24,3 +24,7 @@ Pruebas: `php tests/cash.php` (HTTP, misma base temporal que `tests/sales.php`) 
 - **A validar con el centro**: si el efectivo del reintegro de una anulación supera lo que hay en caja, hoy se registra igual y el esperado queda en negativo. Se puede agregar un aviso o un bloqueo si lo prefieren.
 
 Pruebas: `php tests/cash-close.php` y la migración en `tests/finance.php`.
+
+## Imprimir y exportar la caja (tarjeta #28)
+
+En la pantalla de caja, **Imprimir** (`?page=caja-print`) y **Exportar CSV** (`?page=caja-export`) generan el informe de la caja que se está viendo (la abierta, o la elegida con `session`) con los filtros de medio de pago y tipo. El informe trae el estado, la apertura, el arqueo y la diferencia si ya se cerró, el resumen por medio de pago y los movimientos del más antiguo al más reciente (hasta 5.000). El CSV lista los movimientos con las entradas y las salidas en columnas separadas y termina con el resumen por medio de pago. Mismas reglas de formato y seguridad que en ventas. Solo administración y recepción.

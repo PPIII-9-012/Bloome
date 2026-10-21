@@ -6,10 +6,12 @@ $deny = static function(int $status,string $message) use ($user,$page): never {
     render('message',compact('user','page','message')+['title'=>'Ventas']); exit;
 };
 if (!canEdit($user)) $deny(403,'Solo administración y recepción pueden ver y registrar ventas.');
-if (!in_array($method,['GET','POST'],true) || (in_array($page,['sale','sales'],true) && $method!=='GET')) $deny(405,'Método no permitido.');
+if (!in_array($method,['GET','POST'],true) || (in_array($page,['sale','sales','sales-print','sales-export'],true) && $method!=='GET')) $deny(405,'Método no permitido.');
 
-if ($page==='sales') {
-    $filters=['q'=>substr(input($_GET,'q'),0,100),'status'=>input($_GET,'status'),'from'=>input($_GET,'from'),'to'=>input($_GET,'to'),'employee'=>input($_GET,'employee'),'method'=>input($_GET,'method')];
+/** Filtros del listado de ventas desde la URL: [filtros válidos, aviso de error, empleados para el selector]. */
+function salesFilterInput(array $get): array
+{
+    $filters=['q'=>substr(input($get,'q'),0,100),'status'=>input($get,'status'),'from'=>input($get,'from'),'to'=>input($get,'to'),'employee'=>input($get,'employee'),'method'=>input($get,'method')];
     $filterError='';
     $employeeOptions=query('SELECT e.id,u.name FROM employees e JOIN users u ON u.id=e.user_id ORDER BY u.name,e.id')->fetchAll();
     if (!in_array($filters['employee'],array_map(fn($r)=>(string)$r['id'],$employeeOptions),true)) $filters['employee']='';
@@ -17,12 +19,33 @@ if ($page==='sales') {
     if (!isset(COLLECTION_LABELS[$filters['status']])) $filters['status']='';
     foreach (['from','to'] as $field) if ($filters[$field]!=='' && !validDate($filters[$field])) { $filterError='Revisá las fechas: usá el selector de fecha.'; $filters[$field]=''; }
     if ($filters['from']!=='' && $filters['to']!=='' && $filters['from']>$filters['to']) { $filterError='La fecha "desde" no puede ser posterior a "hasta".'; $filters['from']=$filters['to']=''; }
+    return [$filters,$filterError,$employeeOptions];
+}
+
+if ($page==='sales') {
+    [$filters,$filterError,$employeeOptions]=salesFilterInput($_GET);
     $number=max(1,min(100000,(int)input($_GET,'p','1')));
     [$sales,$count,$totals]=searchSales($filters,$number);
     $pages=max(1,(int)ceil($count/SALES_PER_PAGE));
     if ($number>$pages) { $number=$pages; [$sales,$count,$totals]=searchSales($filters,$number); }
     if ($filterError!=='') http_response_code(422);
     render('sales',compact('user','page','sales','count','totals','number','pages','filters','filterError','employeeOptions')+['title'=>'Ventas']);
+    exit;
+}
+if (in_array($page,['sales-print','sales-export'],true)) {
+    [$filters,$filterError,$employeeOptions]=salesFilterInput($_GET);
+    if ($filterError!=='') {
+        http_response_code(422);
+        render('message',compact('user','page')+['title'=>'No se pudo generar el informe','message'=>$filterError.' Volvé al listado y corregí los filtros.']); exit;
+    }
+    [$sales,$count,$totals]=searchSales($filters,1,true);
+    if ($page==='sales-export') {
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="ventas-'.date('Y-m-d').'.csv"');
+        echo salesCsv($sales,$totals); exit;
+    }
+    $employeeName='Todos'; foreach($employeeOptions as $opt) if ((string)$opt['id']===$filters['employee']) $employeeName=$opt['name'];
+    render('sales-print',compact('user','page','sales','count','totals','filters','employeeName')+['title'=>'Informe de ventas']);
     exit;
 }
 if ($page==='sale') {
