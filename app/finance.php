@@ -378,3 +378,44 @@ function clientDeposits(int $clientId): array
     }
     return $out;
 }
+
+const SALES_PER_PAGE = 12;
+
+/**
+ * Listado de ventas con búsqueda y filtros. $f: q (número de venta o nombre del cliente), status (unpaid|partial|paid|voided),
+ * from y to (Y-m-d, inclusivos). Devuelve [filas, total de resultados]. El estado de cobro se calcula igual que saleBalance.
+ */
+function searchSales(array $f, int $page): array
+{
+    $where = []; $params = [];
+    $q = trim((string)($f['q'] ?? ''));
+    if ($q !== '') {
+        $like = '%' . addcslashes($q, '\\%_') . '%';
+        $clause = "(x.first_name LIKE ? OR x.last_name LIKE ? OR CONCAT_WS(' ', x.first_name, x.last_name) LIKE ? OR CONCAT_WS(' ', x.last_name, x.first_name) LIKE ?";
+        $params = [$like, $like, $like, $like];
+        if (ctype_digit(ltrim($q, '#')) && ltrim($q, '#') !== '') { $clause .= ' OR x.id = ?'; $params[] = (int)ltrim($q, '#'); }
+        $where[] = $clause . ')';
+    }
+    $status = (string)($f['status'] ?? '');
+    $where[] = match ($status) {
+        'voided' => "x.status='voided'",
+        'unpaid' => "x.status='confirmed' AND x.paid=0 AND x.total>0",
+        'partial' => "x.status='confirmed' AND x.paid>0 AND x.paid<x.total",
+        'paid' => "x.status='confirmed' AND x.paid>=x.total AND (x.paid>0 OR x.total=0)",
+        default => '1=1',
+    };
+    if (($f['from'] ?? '') !== '') { $where[] = 'DATE(x.created_at) >= ?'; $params[] = $f['from']; }
+    if (($f['to'] ?? '') !== '') { $where[] = 'DATE(x.created_at) <= ?'; $params[] = $f['to']; }
+    $base = "FROM (SELECT s.id, s.created_at, s.total, s.status, s.appointment_id, c.id AS client_id, c.first_name, c.last_name,
+        COALESCE((SELECT SUM(pa.amount) FROM payment_allocations pa JOIN payments p ON p.id=pa.payment_id WHERE pa.sale_id=s.id AND pa.released_at IS NULL AND p.status='paid'),0) AS paid
+        FROM sales s JOIN clients c ON c.id=s.client_id) x WHERE " . implode(' AND ', $where);
+    $count = (int)query("SELECT COUNT(*) $base", $params)->fetchColumn();
+    $offset = (max(1, $page) - 1) * SALES_PER_PAGE;
+    $rows = query("SELECT x.* $base ORDER BY x.created_at DESC, x.id DESC LIMIT " . SALES_PER_PAGE . " OFFSET $offset", $params)->fetchAll();
+    foreach ($rows as &$row) {
+        $total = decimalToCents($row['total']); $paid = decimalToCents($row['paid']);
+        $row['collection'] = $row['status'] === 'voided' ? 'voided' : collectionStatus($total, $paid);
+        $row['balance'] = $row['status'] === 'voided' ? 0 : $total - $paid;
+    }
+    return [$rows, $count];
+}

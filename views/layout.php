@@ -67,6 +67,11 @@
                 'icon' => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
                 'enabled' => true
             ],
+            'sales' => [
+                'label' => 'Ventas',
+                'icon' => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
+                'enabled' => canEdit($user)
+            ],
             'caja' => [
                 'label' => 'Caja',
                 'icon' => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="12 6 13.8 9.8 18 10.4 15 13.3 15.7 17.5 12 15.5 8.3 17.5 9 13.3 6 10.4 10.2 9.8 12 6"/></svg>',
@@ -101,7 +106,8 @@
         ?>
         <?php foreach ($navItems as $key => $item):
             if (in_array($key, ['employees','schedule','holidays'], true) && !canManageEmployees($user)) continue;
-            $isActive = ($page === $key) || ($key === 'employees' && in_array($page, ['employee','employee-new','employee-edit'], true)) || ($key === 'clients' && str_starts_with($page, 'client-'));
+            if ($key === 'sales' && !canEdit($user)) continue;
+            $isActive = ($page === $key) || ($key === 'employees' && in_array($page, ['employee','employee-new','employee-edit'], true)) || ($key === 'clients' && str_starts_with($page, 'client-')) || ($key === 'sales' && in_array($page, ['sale','sale-new','sale-pay','sale-void'], true));
         ?>
             <?php if ($item['enabled']): ?>
             <a class="sidebar-nav-item <?= $isActive ? 'active' : '' ?>" href="<?= e(url($key)) ?>" <?= $isActive ? 'aria-current="page"' : '' ?>>
