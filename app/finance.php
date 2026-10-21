@@ -557,10 +557,21 @@ function searchSales(array $f, int $page): array
     };
     if (($f['from'] ?? '') !== '') { $where[] = 'DATE(x.created_at) >= ?'; $params[] = $f['from']; }
     if (($f['to'] ?? '') !== '') { $where[] = 'DATE(x.created_at) <= ?'; $params[] = $f['to']; }
-    $base = "FROM (SELECT s.id, s.created_at, s.total, s.status, s.appointment_id, c.id AS client_id, c.first_name, c.last_name,
+    if (ctype_digit((string)($f['employee'] ?? '')) && (string)$f['employee'] !== '') { $where[] = 'x.employee_id = ?'; $params[] = (int)$f['employee']; }
+    if (isset(PAYMENT_METHODS[(string)($f['method'] ?? '')])) {
+        // Ventas que recibieron algún cobro vigente con ese medio de pago.
+        $where[] = "EXISTS (SELECT 1 FROM payment_allocations pm JOIN payments pmp ON pmp.id=pm.payment_id WHERE pm.sale_id=x.id AND pm.released_at IS NULL AND pmp.status='paid' AND pmp.payment_method=?)";
+        $params[] = $f['method'];
+    }
+    $base = "FROM (SELECT s.id, s.created_at, s.total, s.status, s.appointment_id, s.employee_id, c.id AS client_id, c.first_name, c.last_name,
         COALESCE((SELECT SUM(pa.amount) FROM payment_allocations pa JOIN payments p ON p.id=pa.payment_id WHERE pa.sale_id=s.id AND pa.released_at IS NULL AND p.status='paid'),0) AS paid
         FROM sales s JOIN clients c ON c.id=s.client_id) x WHERE " . implode(' AND ', $where);
     $count = (int)query("SELECT COUNT(*) $base", $params)->fetchColumn();
+    // Totales de TODO el conjunto filtrado (no solo de la página). Las ventas anuladas no suman.
+    $t = query("SELECT COALESCE(SUM(CASE WHEN x.status='confirmed' THEN x.total END),0) AS sold,
+        COALESCE(SUM(CASE WHEN x.status='confirmed' THEN LEAST(x.paid, x.total) END),0) AS collected $base", $params)->fetch();
+    $sold = decimalToCents((string)$t['sold']); $collected = decimalToCents((string)$t['collected']);
+    $totals = ['sold' => $sold, 'collected' => $collected, 'pending' => $sold - $collected];
     $offset = (max(1, $page) - 1) * SALES_PER_PAGE;
     $rows = query("SELECT x.* $base ORDER BY x.created_at DESC, x.id DESC LIMIT " . SALES_PER_PAGE . " OFFSET $offset", $params)->fetchAll();
     foreach ($rows as &$row) {
@@ -568,5 +579,5 @@ function searchSales(array $f, int $page): array
         $row['collection'] = $row['status'] === 'voided' ? 'voided' : collectionStatus($total, $paid);
         $row['balance'] = $row['status'] === 'voided' ? 0 : $total - $paid;
     }
-    return [$rows, $count];
+    return [$rows, $count, $totals];
 }

@@ -96,6 +96,29 @@ try {
     slLogin('admin@example.test', $password);
     slCheck(slRequest('page=sales')[0] === 200, 'Administración también ve el listado');
 
+    // --- Filtros por empleado y medio de pago, y totales ---
+    slLogin('reception@example.test', $password);
+    [, $body] = slRequest('page=sales');
+    slCheck(str_contains($body, 'Vendido') && str_contains($body, '$ 16.000,00') && str_contains($body, '$ 1.300,00') && str_contains($body, '$ 14.700,00'), 'Totales de todo el conjunto: vendido 16.000, cobrado 1.300, pendiente 14.700 (sin la anulada)');
+    [, $body] = slRequest('page=sales&q=Beto');
+    slCheck(str_contains($body, '$ 2.000,00') && str_contains($body, '$ 1.300,00') && str_contains($body, '$ 700,00'), 'Los totales siguen los filtros');
+    [, $body] = slRequest('page=sales&employee=503');
+    slCheck(str_contains($body, '17 ventas'), 'El filtro por empleado incluye las ventas de ese empleado');
+    [, $body] = slRequest('page=sales&employee=502');
+    slCheck(str_contains($body, 'No encontramos ventas') && str_contains($body, '$ 0,00'), 'Otro empleado sin ventas: vacío y totales en cero');
+    [, $body] = slRequest('page=sales&employee=999999');
+    slCheck(str_contains($body, '17 ventas'), 'Un empleado inexistente se ignora');
+    [, $body] = slRequest('page=sales&method=cash');
+    slCheck($rows($body) === 2 && str_contains($body, '2 ventas'), 'El filtro por medio de pago devuelve las ventas cobradas en efectivo');
+    [, $body] = slRequest('page=sales&method=transfer');
+    slCheck(str_contains($body, 'No encontramos ventas'), 'Sin cobros por transferencia no hay resultados');
+    [, $body] = slRequest('page=sales&method=bitcoin');
+    slCheck(str_contains($body, '17 ventas'), 'Un medio desconocido se ignora');
+    [, $body] = slRequest('page=sales&employee=503&method=cash&status=partial');
+    slCheck($rows($body) === 1 && str_contains($body, 'Cobro parcial') && str_contains($body, '1 ventas'), 'Empleado, medio de pago y estado se combinan');
+    [, $body] = slRequest('page=sales&employee=503&p=2');
+    slCheck(str_contains($body, 'Página 2 de 2') && str_contains($body, 'page=sales&amp;employee=503&amp;p=1'), 'Los enlaces de paginación conservan el filtro de empleado');
+
     echo "\n$checks pruebas de listado aprobadas.\n";
 } finally {
     if (is_resource($server)) { proc_terminate($server); proc_close($server); }
