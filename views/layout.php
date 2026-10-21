@@ -88,7 +88,7 @@
             'estadisticas' => [
                 'label' => 'Estadísticas',
                 'icon' => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
-                'enabled' => false
+                'enabled' => canEdit($user)
             ],
             'employees' => [
                 'label' => 'Empleados',
@@ -114,8 +114,8 @@
         ?>
         <?php foreach ($navItems as $key => $item):
             if (in_array($key, ['employees','schedule','holidays','configuracion'], true) && !canManageEmployees($user)) continue;
-            if (in_array($key, ['sales','caja'], true) && !canEdit($user)) continue;
-            $isActive = ($page === $key) || ($key === 'employees' && in_array($page, ['employee','employee-new','employee-edit'], true)) || ($key === 'clients' && str_starts_with($page, 'client-')) || ($key === 'sales' && in_array($page, ['sale','sale-new','sale-pay','sale-void'], true)) || ($key === 'caja' && $page === 'caja-movement');
+            if (in_array($key, ['sales','caja','estadisticas'], true) && !canEdit($user)) continue;
+            $isActive = ($page === $key) || ($key === 'employees' && in_array($page, ['employee','employee-new','employee-edit'], true)) || ($key === 'clients' && str_starts_with($page, 'client-')) || ($key === 'sales' && in_array($page, ['sale','sale-new','sale-pay','sale-void'], true)) || ($key === 'caja' && $page === 'caja-movement') || ($key === 'estadisticas' && str_starts_with($page, 'estadisticas-'));
         ?>
             <?php if ($item['enabled']): ?>
             <a class="sidebar-nav-item <?= $isActive ? 'active' : '' ?>" href="<?= e(url($key)) ?>" <?= $isActive ? 'aria-current="page"' : '' ?>>

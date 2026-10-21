@@ -118,6 +118,9 @@ try {
     if (in_array($page, ['holidays','holiday-new','holiday-delete','schedule'], true)) {
         require ROOT . '/app/schedule-routes.php';
     }
+    if (in_array($page, ['estadisticas','estadisticas-ventas','estadisticas-gastos','estadisticas-horas'], true)) {
+        require ROOT . '/app/stats-routes.php';
+    }
     if (in_array($page, ['sale-new','sale','sales','sales-print','sales-export'], true)) {
         require ROOT . '/app/sale-routes.php';
     }
@@ -240,6 +243,7 @@ try {
             'email',
             'phone',
             'birth_date',
+            'gender',
             'notes',
         ], '');
         $draftToken=$page==='client-new'?input($_GET,'draft'):'';
@@ -277,6 +281,7 @@ try {
                     $client['email'] ?: null,
                     $client['phone'] ?: null,
                     $client['birth_date'] ?: null,
+                    $client['gender'] ?: null,
                     $client['notes'] ?: null,
                 ];
 
@@ -286,8 +291,8 @@ try {
                     if ($page === 'client-new') {
                         query(
                             'INSERT INTO clients
-                             (first_name, last_name, email, phone, birth_date, notes)
-                             VALUES (?, ?, ?, ?, ?, ?)',
+                             (first_name, last_name, email, phone, birth_date, gender, notes)
+                             VALUES (?, ?, ?, ?, ?, ?, ?)',
                             $values
                         );
                         $clientId = (int) $connection->lastInsertId();
@@ -302,7 +307,7 @@ try {
                         query(
                             'UPDATE clients
                              SET first_name = ?, last_name = ?, email = ?,
-                                 phone = ?, birth_date = ?, notes = ?,
+                                 phone = ?, birth_date = ?, gender = ?, notes = ?,
                                  updated_at = CURRENT_TIMESTAMP
                              WHERE id = ?',
                             [...$values, $id]

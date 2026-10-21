@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS clients (
     email VARCHAR(190) NULL,
     phone VARCHAR(30) NULL,
     birth_date DATE NULL,
+    gender ENUM('female','male','other') NULL,
     notes TEXT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
