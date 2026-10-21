@@ -80,6 +80,7 @@ php tests/payments.php  # cobros parciales, señas y caja (HTTP); mismas credenc
 php tests/voids.php     # anulación de ventas (HTTP); mismas credenciales
 php tests/sales-list.php  # listado y búsqueda de ventas (HTTP); mismas credenciales
 php tests/cash.php   # caja diaria, movimientos y gastos (HTTP); mismas credenciales
+php tests/cash-close.php  # arqueo y cierre de caja (HTTP); mismas credenciales
 ```
 
 Las pruebas unitarias no necesitan MySQL. Comprobar además con MySQL real: instalación, acceso, alta/edición, búsqueda, persistencia al recargar, agenda y permisos. El SQL se mantiene idempotente para instalar una base nueva; no sustituye un sistema de migraciones para futuras modificaciones de estructura.

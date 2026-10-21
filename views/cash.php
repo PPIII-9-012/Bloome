@@ -9,6 +9,7 @@ $fmt=fn(string $d)=>(new DateTimeImmutable($d))->format('d/m/Y H:i');
 <a class="figma-action-btn" href="<?= e(url('caja-movement',['kind'=>'expense'])) ?>"><span>Registrar gasto</span></a>
 <a class="figma-action-btn" href="<?= e(url('caja-movement',['kind'=>'income'])) ?>"><span>Registrar ingreso</span></a>
 <a class="figma-action-btn" href="<?= e(url('caja-movement',['kind'=>'withdrawal'])) ?>"><span>Registrar retiro</span></a>
+<a class="figma-action-btn" href="<?= e(url('caja-close')) ?>"><span>Cerrar caja</span></a>
 <?php endif; ?>
 </div>
 <?php if ($errors): ?><div class="notice error" role="alert"><ul><?php foreach($errors as $error): ?><li><?= e($error) ?></li><?php endforeach; ?></ul></div><?php endif; ?>
@@ -24,7 +25,14 @@ $fmt=fn(string $d)=>(new DateTimeImmutable($d))->format('d/m/Y H:i');
 <dt>Apertura</dt><dd><?= e($fmt($cashView['opened_at'])) ?> por <?= e($cashView['opened_by_name']) ?></dd>
 <dt>Efectivo inicial</dt><dd><?= e(moneyFormat(decimalToCents($cashView['opening_cash']))) ?></dd>
 <?php if($cashView['status']==='closed'): ?><dt>Cierre</dt><dd><?= e($cashView['closed_at']?$fmt($cashView['closed_at']):'—') ?><?= $cashView['closed_by_name']?' por '.e($cashView['closed_by_name']):'' ?></dd><?php endif; ?>
+<?php if($cashView['status']==='closed' && $cashView['counted_cash']!==null): $diff=decimalToCents($cashView['difference']); ?>
+<dt>Efectivo esperado</dt><dd><?= e(moneyFormat(decimalToCents($cashView['expected_cash']))) ?> <small class="muted">(inicial + entradas − salidas en efectivo, al cierre)</small></dd>
+<dt>Efectivo contado</dt><dd><strong><?= e(moneyFormat(decimalToCents($cashView['counted_cash']))) ?></strong></dd>
+<dt>Diferencia</dt><dd><strong class="<?= $diff===0?'':($diff<0?'amount-out':'amount-in') ?>"><?= e($diff===0?'Sin diferencias':moneyFormat($diff)) ?></strong></dd>
+<?php if($cashView['closing_note']): ?><dt>Observación</dt><dd><?= e($cashView['closing_note']) ?></dd><?php endif; ?>
+<?php else: ?>
 <dt>Efectivo esperado</dt><dd><strong><?= e(moneyFormat($expected)) ?></strong> <small class="muted">(inicial + entradas − salidas en efectivo)</small></dd>
+<?php endif; ?>
 </dl>
 <h3>Resumen por medio de pago</h3>
 <div class="employee-table-wrap"><table class="figma-table cash-summary">

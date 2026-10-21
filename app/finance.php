@@ -169,6 +169,42 @@ function reverseCashMovement(int $actorId, int $movementId, string $reason): int
     });
 }
 
+/**
+ * Arqueo de la caja abierta: efectivo esperado (inicial + entradas - salidas en efectivo), contado y diferencia en centavos,
+ * más el resumen por medio de pago. No guarda nada.
+ */
+function cashCountPreview(int $sessionId, string $countedCash): array
+{
+    $counted = moneyToCents($countedCash);
+    if ($counted === null) throw new DomainException('El efectivo contado debe ser un importe válido, con hasta 2 decimales y sin signo.', 422);
+    $expected = cashExpectedCents($sessionId);
+    return ['counted' => $counted, 'expected' => $expected, 'difference' => $counted - $expected, 'summary' => cashSummary($sessionId)];
+}
+
+/**
+ * Cierra la caja abierta con arqueo (administración o recepción). Todo ocurre en una transacción con la caja bloqueada: los
+ * cobros y movimientos que llegan a la vez esperan o ven la caja ya cerrada, y los totales guardados son los que se contaron.
+ * Una diferencia distinta de cero exige observación. Una caja cerrada no se reabre ni se modifica: lo posterior va a la caja nueva.
+ */
+function closeCashSession(int $actorId, int $sessionId, string $countedCash, string $note): array
+{
+    $note = trim($note);
+    if (textLength($note) > 255) throw new DomainException('La observación admite hasta 255 caracteres.', 422);
+    return financeTransaction(function () use ($actorId, $sessionId, $countedCash, $note) {
+        financeActor($actorId, ['admin', 'reception']);
+        $session = query('SELECT id, status FROM cash_sessions WHERE id=? FOR UPDATE', [$sessionId])->fetch();
+        if (!$session) throw new DomainException('Caja no encontrada.', 404);
+        if ($session['status'] !== 'open') throw new DomainException('Esa caja ya está cerrada.', 409);
+        $count = cashCountPreview($sessionId, $countedCash);
+        if ($count['difference'] !== 0 && textLength($note) < 5) throw new DomainException('Hay una diferencia de ' . moneyFormat($count['difference']) . ' entre lo esperado y lo contado. Explicala en la observación (al menos 5 caracteres).', 422);
+        $summary = [];
+        foreach ($count['summary'] as $method => $row) $summary[$method] = ['in' => centsToDecimal($row['in']), 'out' => centsToDecimal($row['out']), 'net' => centsToDecimal($row['net'])];
+        query("UPDATE cash_sessions SET status='closed', closed_at=NOW(), closed_by=?, expected_cash=?, counted_cash=?, difference=?, closing_note=?, closing_summary=? WHERE id=?",
+            [$actorId, centsToDecimal($count['expected']), centsToDecimal($count['counted']), centsToDecimal($count['difference']), $note ?: null, json_encode($summary, JSON_THROW_ON_ERROR), $sessionId]);
+        return $count;
+    });
+}
+
 const CASH_KIND_LABELS = ['payment' => 'Cobro', 'refund' => 'Reintegro', 'income' => 'Ingreso', 'expense' => 'Gasto', 'withdrawal' => 'Retiro'];
 const CASH_PER_PAGE = 25;
 

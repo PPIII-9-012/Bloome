@@ -38,6 +38,30 @@ if ($page==='caja-movement') {
     exit;
 }
 
+if ($page==='caja-close') {
+    $session=currentCashSession();
+    if (!$session) { flash('No hay una caja abierta para cerrar.'); redirect('caja'); }
+    $form=['counted_cash'=>'','note'=>'']; $preview=null;
+    if ($method==='POST') {
+        $form=['counted_cash'=>input($_POST,'counted_cash'),'note'=>input($_POST,'note')];
+        try {
+            if (input($_POST,'intent')==='close') {
+                $result=closeCashSession((int)$user['id'],(int)$session['id'],$form['counted_cash'],$form['note']);
+                flash('Caja #'.$session['id'].' cerrada. '.($result['difference']===0?'Sin diferencias.':'Diferencia registrada: '.moneyFormat($result['difference']).'.')); redirect('caja',['session'=>$session['id']]);
+            }
+            $preview=cashCountPreview((int)$session['id'],$form['counted_cash']);
+        } catch (DomainException $e) {
+            if (in_array($e->getCode(),[403,404],true)) $deny($e->getCode(),$e->getMessage());
+            http_response_code($e->getCode()); $errors[]=$e->getMessage();
+            try { $preview=cashCountPreview((int)$session['id'],$form['counted_cash']); } catch (DomainException) { $preview=null; }
+            if (!currentCashSession()) { flash('Esa caja ya está cerrada.'); redirect('caja'); }
+        }
+    }
+    $expected=cashExpectedCents((int)$session['id']);
+    render('cash-close',compact('user','page','session','form','preview','errors','expected')+['summary'=>cashSummary((int)$session['id']),'title'=>'Cerrar caja']);
+    exit;
+}
+
 // --- caja ---
 if ($method==='POST') {
     $intent=input($_POST,'intent');

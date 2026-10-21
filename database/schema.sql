@@ -316,6 +316,8 @@ CREATE TABLE IF NOT EXISTS cash_sessions (
     expected_cash DECIMAL(12,2) NULL,
     counted_cash DECIMAL(12,2) NULL,
     difference DECIMAL(12,2) NULL,
+    closing_note VARCHAR(255) NULL,
+    closing_summary JSON NULL,
     open_key TINYINT GENERATED ALWAYS AS (IF(status='open', 1, NULL)) STORED,
     CONSTRAINT cash_sessions_opener FOREIGN KEY (opened_by) REFERENCES users(id),
     CONSTRAINT cash_sessions_closer FOREIGN KEY (closed_by) REFERENCES users(id),
