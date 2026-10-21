@@ -14,6 +14,8 @@ date_default_timezone_set(getenv('APP_TIMEZONE') ?: 'America/Argentina/Buenos_Ai
 require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/validation.php';
 require_once __DIR__ . '/database.php';
+require_once __DIR__ . '/permissions.php';
+require_once __DIR__ . '/audit.php';
 if (PHP_SAPI !== 'cli') {
     ini_set('session.use_strict_mode', '1');
     session_name('bloome_session');

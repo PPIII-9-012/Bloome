@@ -61,9 +61,63 @@ try {
             'appointments' => query("SELECT COUNT(*) FROM appointments WHERE starts_at >= ? AND starts_at < ? AND status <> 'cancelled'", [$today, date('Y-m-d', strtotime('+1 day'))])->fetchColumn(),
             'services' => query('SELECT COUNT(*) FROM services WHERE active = 1')->fetchColumn(),
         ];
-        $appointments = query('SELECT a.*, c.first_name, c.last_name, s.name AS service_name, u.name AS employee_name FROM appointments a JOIN clients c ON c.id=a.client_id JOIN services s ON s.id=a.service_id JOIN users u ON u.id=a.employee_id WHERE a.starts_at >= ? AND a.starts_at < ? ORDER BY a.starts_at LIMIT 6', [$today, date('Y-m-d', strtotime('+1 day'))])->fetchAll();
+        $appointments = query(
+    "SELECT
+        a.*,
+        c.first_name,
+        c.last_name,
+
+        COALESCE(
+            (
+                SELECT GROUP_CONCAT(
+                    s.name
+                    ORDER BY s.name
+                    SEPARATOR ', '
+                )
+                FROM appointment_services aps
+                JOIN services s
+                    ON s.id = aps.service_id
+                WHERE aps.appointment_id = a.id
+            ),
+            'Sin servicios'
+        ) AS service_name,
+
+        u.name AS employee_name
+
+    FROM appointments a
+
+    JOIN clients c
+        ON c.id = a.client_id
+
+    JOIN employees e
+        ON e.id = a.employee_id
+
+    JOIN users u
+        ON u.id = e.user_id
+
+    WHERE a.starts_at >= ?
+      AND a.starts_at < ?
+
+    ORDER BY a.starts_at
+    LIMIT 6",
+
+    [
+        $today,
+        date('Y-m-d', strtotime('+1 day'))
+    ]
+)->fetchAll();
         render('dashboard', compact('user', 'page', 'stats', 'appointments') + ['title' => 'Tu centro, en un vistazo']);
     } elseif ($page === 'clients' && $method === 'GET') {
+            if (!hasPermission($user, 'clients.view')) {
+        http_response_code(403);
+
+        render('message', compact('user', 'page') + [
+        'title' => 'Acceso restringido',
+        'message' => 'No tenés permiso para ver clientes.'
+    ]);
+
+    exit;
+}
         $search = substr(input($_GET, 'q'), 0, 100);
         $number = max(1, min(100000, (int) input($_GET, 'p', '1')));
         $where = '';
@@ -78,14 +132,50 @@ try {
         $offset = ($number - 1) * 12;
         $clients = query('SELECT * FROM clients' . $where . " ORDER BY last_name, first_name, id LIMIT 12 OFFSET $offset", $params)->fetchAll();
         render('clients', compact('user', 'page', 'clients', 'search', 'number', 'pages', 'count') + ['title' => 'Clientes']);
-    } elseif (in_array($page, ['client-new', 'client-edit'], true) && in_array($method, ['GET', 'POST'], true)) {
-        if (!canEdit($user)) {
-            http_response_code(403);
-            render('message', compact('user', 'page') + ['title' => 'Acceso restringido', 'message' => 'Tu perfil no tiene permiso para editar clientes.']);
-            exit;
+   } elseif (
+    in_array($page, ['client-new', 'client-edit'], true)
+    && in_array($method, ['GET', 'POST'], true)
+) {
+
+    $id = max(0, (int) input($_GET, 'id'));
+
+    // Determinar qué permiso necesitamos
+    $permission = $page === 'client-new'
+        ? 'clients.create'
+        : 'clients.edit';
+
+    // Comprobar el permiso
+    if (!hasPermission($user, $permission)) {
+
+        // Auditar intentos de escritura denegados
+        if ($method === 'POST') {
+            recordAudit(
+                (int) $user['id'],
+                $permission,
+                'clients',
+                $page === 'client-edit' && $id > 0 ? $id : null,
+                'denied'
+            );
         }
-        $id = max(0, (int) input($_GET, 'id'));
-        $client = array_fill_keys(['first_name', 'last_name', 'email', 'phone', 'birth_date', 'notes'], '');
+
+        http_response_code(403);
+
+        render('message', compact('user', 'page') + [
+            'title' => 'Acceso restringido',
+            'message' => 'No tenés permiso para realizar esta acción.'
+        ]);
+
+        exit;
+    }
+    $client = array_fill_keys([
+        'first_name',
+        'last_name',
+        'email',
+        'phone',
+        'birth_date',
+        'notes'
+    ], '');
+
         if ($page === 'client-edit') {
             $client = query('SELECT * FROM clients WHERE id = ?', [$id])->fetch();
             if (!$client) { http_response_code(404); render('message', compact('user', 'page') + ['title' => 'Cliente no encontrado', 'message' => 'Revisá el enlace o volvé al listado.']); exit; }
@@ -93,25 +183,168 @@ try {
         if ($method === 'POST') {
             [$client, $errors] = validateClient($_POST);
             if (!$errors) {
-                $values = [$client['first_name'], $client['last_name'], $client['email'] ?: null, $client['phone'] ?: null, $client['birth_date'] ?: null, $client['notes'] ?: null];
-                if ($page === 'client-new') {
-                    query('INSERT INTO clients (first_name, last_name, email, phone, birth_date, notes) VALUES (?, ?, ?, ?, ?, ?)', $values);
-                } else {
-                    query('UPDATE clients SET first_name=?, last_name=?, email=?, phone=?, birth_date=?, notes=?, updated_at=CURRENT_TIMESTAMP WHERE id=?', [...$values, $id]);
-                }
-                flash($page === 'client-new' ? 'Cliente creado correctamente.' : 'Los cambios se guardaron.');
-                redirect('clients');
+
+    // Datos validados del cliente
+    $values = [
+        $client['first_name'],
+        $client['last_name'],
+        $client['email'] ?: null,
+        $client['phone'] ?: null,
+        $client['birth_date'] ?: null,
+        $client['notes'] ?: null
+    ];
+
+    // Utilizar la conexión existente
+    $connection = db();
+
+    // Iniciar transacción InnoDB
+    $connection->beginTransaction();
+
+    try {
+
+        if ($page === 'client-new') {
+
+            // Crear cliente
+            query(
+                'INSERT INTO clients
+                (first_name, last_name, email, phone, birth_date, notes)
+                VALUES (?, ?, ?, ?, ?, ?)',
+                $values
+            );
+
+            // Obtener el ID del nuevo cliente
+            $clientId = (int) $connection->lastInsertId();
+
+            $action = 'clients.create';
+
+        } else {
+
+            // Bloquear y verificar el registro antes de modificarlo
+            $existingId = query(
+                'SELECT id FROM clients WHERE id = ? FOR UPDATE',
+                [$id]
+            )->fetchColumn();
+
+            if ($existingId === false) {
+                throw new RuntimeException(
+                    'El cliente ya no existe.'
+                );
             }
+
+            // Actualizar cliente
+            query(
+                'UPDATE clients
+                 SET first_name = ?,
+                     last_name = ?,
+                     email = ?,
+                     phone = ?,
+                     birth_date = ?,
+                     notes = ?,
+                     updated_at = CURRENT_TIMESTAMP
+                 WHERE id = ?',
+                [...$values, $id]
+            );
+
+            $clientId = $id;
+
+            $action = 'clients.edit';
+        }
+
+        // Registrar la acción realizada
+        recordAudit(
+            (int) $user['id'],
+            $action,
+            'clients',
+            $clientId,
+            'success'
+        );
+
+        // Confirmar modificación y auditoría
+        $connection->commit();
+
+    } catch (Throwable $exception) {
+
+        // Deshacer la operación si algo falló
+        if ($connection->inTransaction()) {
+            $connection->rollBack();
+        }
+
+        throw $exception;
+    }
+
+    flash(
+        $page === 'client-new'
+            ? 'Cliente creado correctamente.'
+            : 'Los cambios se guardaron.'
+    );
+
+    redirect('clients');
+}
             http_response_code(422);
         }
         render('client-form', compact('user', 'page', 'client', 'errors', 'id') + ['title' => $page === 'client-new' ? 'Nuevo cliente' : 'Editar cliente']);
     } elseif ($page === 'agenda' && $method === 'GET') {
-        $date = input($_GET, 'date', date('Y-m-d'));
-        if (!validDate($date)) $date = date('Y-m-d');
-        $next = (new DateTimeImmutable($date))->modify('+1 day')->format('Y-m-d');
-        $appointments = query('SELECT a.*, c.first_name, c.last_name, s.name AS service_name, u.name AS employee_name FROM appointments a JOIN clients c ON c.id=a.client_id JOIN services s ON s.id=a.service_id JOIN users u ON u.id=a.employee_id WHERE starts_at >= ? AND starts_at < ? ORDER BY starts_at', [$date, $next])->fetchAll();
-        render('agenda', compact('user', 'page', 'date', 'appointments') + ['title' => 'Agenda']);
-    } else {
+
+    $date = input($_GET, 'date', date('Y-m-d'));
+
+    if (!validDate($date)) {
+        $date = date('Y-m-d');
+    }
+
+    $next = (new DateTimeImmutable($date))
+        ->modify('+1 day')
+        ->format('Y-m-d');
+
+    $appointments = query(
+        "SELECT
+            a.*,
+            c.first_name,
+            c.last_name,
+
+            COALESCE(
+                (
+                    SELECT GROUP_CONCAT(
+                        s.name
+                        ORDER BY s.name
+                        SEPARATOR ', '
+                    )
+                    FROM appointment_services aps
+                    JOIN services s
+                        ON s.id = aps.service_id
+                    WHERE aps.appointment_id = a.id
+                ),
+                'Sin servicios'
+            ) AS service_name,
+
+            u.name AS employee_name
+
+        FROM appointments a
+
+        JOIN clients c
+            ON c.id = a.client_id
+
+        JOIN employees e
+            ON e.id = a.employee_id
+
+        JOIN users u
+            ON u.id = e.user_id
+
+        WHERE a.starts_at >= ?
+          AND a.starts_at < ?
+
+        ORDER BY a.starts_at",
+
+        [$date, $next]
+    )->fetchAll();
+
+    render(
+        'agenda',
+        compact('user', 'page', 'date', 'appointments')
+        + ['title' => 'Agenda']
+    );
+
+} else {
+
         http_response_code(404);
         render('message', compact('user', 'page') + ['title' => 'Página no encontrada', 'message' => 'Este enlace no está disponible. Podés volver al inicio.']);
     }

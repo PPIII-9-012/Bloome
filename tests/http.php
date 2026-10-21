@@ -71,6 +71,22 @@ try {
     expect($status===403,'Permiso comprobado en servidor para GET');
     [$status] = request('client-edit&id='.$createdId,['csrf'=>$csrf,'first_name'=>'Intrusión','last_name'=>'Prueba'],true);
     expect($status===403 && query('SELECT first_name FROM clients WHERE id=?',[$createdId])->fetchColumn()==='QA actualizada','Permiso comprobado para POST sin alterar datos');
+    // Verificar que el intento denegado quedó registrado
+$auditFound = (int) query(
+    "SELECT COUNT(*)
+     FROM audit_logs
+     WHERE actor_user_id = ?
+       AND action = 'clients.edit'
+       AND entity = 'clients'
+       AND entity_id = ?
+       AND outcome = 'denied'",
+    [$professionalId, $createdId]
+)->fetchColumn();
+
+expect(
+    $auditFound === 1,
+    'Auditoria registra intento de edicion denegado'
+);
     [, $body] = request('clients');
     request('logout',['csrf'=>token($body)],true);
     echo "\n$checks pruebas HTTP/MySQL aprobadas.\n";
@@ -78,8 +94,44 @@ try {
     fwrite(STDERR,'FAIL: '.$e->getMessage()."\n");
     $failed=true;
 } finally {
-    if ($createdId) query('DELETE FROM clients WHERE id=? AND email=?',[$createdId,$testEmail]);
-    if ($professionalId) query('DELETE FROM users WHERE id=? AND email=?',[$professionalId,$professionalEmail]);
-    query('DELETE FROM login_attempts WHERE identity_hash=?',[hash('sha256',$professionalEmail)]);
+
+    // Eliminar auditorías del profesional ficticio
+    if ($professionalId) {
+        query(
+            'DELETE FROM audit_logs WHERE actor_user_id = ?',
+            [$professionalId]
+        );
+    }
+
+    // Eliminar auditorías del cliente de prueba
+    if ($createdId) {
+
+        query(
+            "DELETE FROM audit_logs
+             WHERE entity = 'clients'
+             AND entity_id = ?",
+            [$createdId]
+        );
+
+        // Eliminar cliente ficticio
+        query(
+            'DELETE FROM clients WHERE id = ? AND email = ?',
+            [$createdId, $testEmail]
+        );
+    }
+
+    // Eliminar usuario profesional ficticio
+    if ($professionalId) {
+        query(
+            'DELETE FROM users WHERE id = ? AND email = ?',
+            [$professionalId, $professionalEmail]
+        );
+    }
+
+    // Limpiar sus intentos de inicio de sesión
+    query(
+        'DELETE FROM login_attempts WHERE identity_hash = ?',
+        [hash('sha256', $professionalEmail)]
+    );
 }
 exit(isset($failed)?1:0);
