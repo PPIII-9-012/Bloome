@@ -65,6 +65,15 @@ try {
     $worker=(int)query('SELECT id FROM users WHERE email=?',[$fields['email']])->fetchColumn();
     $record=employeeRecord($worker);
     checkEmployee($record['appointment_color']==='#FF8800' && $record['role']==='professional', 'Rol y color guardados en MySQL');
+    [, $body]=httpEmployee('admin','employee-edit&id='.$worker); $editCsrf=employeeToken($body);
+    $extra=['csrf'=>$editCsrf,'name'=>$fields['name'],'email'=>$fields['email'],'phone'=>'','role'=>'professional','active'=>'1','appointment_color'=>'#FF8800'];
+    foreach ([['commission_percentage','101'],['commission_percentage','abc'],['commission_percentage','-5'],['hire_date','2999-01-01'],['hire_date','2026-02-31'],['specialty',str_repeat('a',121)]] as [$k,$v])
+        checkEmployee(httpEmployee('admin','employee-edit&id='.$worker,array_replace($extra,[$k=>$v]))[0]===422,'Rechaza '.$k.' inválido: '.substr($v,0,10));
+    checkEmployee(httpEmployee('admin','employee-edit&id='.$worker,array_replace($extra,['specialty'=>'Masajista','hire_date'=>'2024-03-15','commission_percentage'=>'12,5']))[0]===303,'Admin guarda especialidad, ingreso y comisión');
+    $record=employeeRecord($worker);
+    checkEmployee($record['specialty']==='Masajista' && $record['hire_date']==='2024-03-15' && (float)$record['commission_percentage']===12.5,'Campos de empleado persistidos en MySQL');
+    checkEmployee(httpEmployee('admin','employee-edit&id='.$worker,array_replace($extra,['specialty'=>'','hire_date'=>'','commission_percentage'=>'']))[0]===303 && employeeRecord($worker)['commission_percentage']===null,'Campos opcionales se pueden vaciar');
+    httpEmployee('admin','employee-edit&id='.$worker,array_replace($extra,['specialty'=>'Masajista','commission_percentage'=>'10']));
     checkEmployee(httpEmployee('admin','employee-new',$fields)[0]===422 && (int)query('SELECT COUNT(*) FROM users')->fetchColumn()===2,'Correo duplicado no deja usuario parcial');
     [, $body]=httpEmployee('admin','employees&q=worker');
     checkEmployee(str_contains($body,'QA &lt;script&gt;') && !str_contains($body,'QA <script>'), 'Listado busca y escapa HTML almacenado');
@@ -80,6 +89,9 @@ try {
     checkEmployee(employeeRecord($worker)['role']==='professional' && employeeRecord($admin)['name']==='QA admin','Solicitudes manipuladas no alteran privilegios ni otro usuario');
     checkEmployee(httpEmployee('worker','profile-edit',['csrf'=>$workerCsrf,'name'=>'Perfil actualizado','email'=>'worker-new@example.test','phone'=>'12345678'])[0]===303,'Edición propia permitida y persistida');
     checkEmployee(employeeRecord($worker)['phone']==='12345678','Teléfono de perfil guardado');
+    checkEmployee(employeeRecord($worker)['commission_percentage']==='10.00','Edición propia no modifica comisión');
+    [, $body]=httpEmployee('worker','profile'); checkEmployee(str_contains($body,'Comisión') && str_contains($body,'Masajista'),'Profesional ve su propia comisión y especialidad');
+    checkEmployee(httpEmployee('worker','profile-edit',['csrf'=>$workerCsrf,'name'=>'X','email'=>'worker-new@example.test','phone'=>'','commission_percentage'=>'90'])[0]===403,'Perfil propio rechaza comisión');
     checkEmployee(httpEmployee('worker','profile-edit',['csrf'=>$workerCsrf,'name'=>'QA','email'=>'admin@example.test','phone'=>''])[0]===422,'Perfil rechaza correo duplicado sin cambiar datos');
     $workerEmployee = (int)query('SELECT id FROM employees WHERE user_id=?', [$worker])->fetchColumn();
     query("INSERT INTO appointments (client_id,employee_id,starts_at,ends_at,status) VALUES (?,?,'2026-01-02 09:00','2026-01-02 09:30','completed')",[$client,$workerEmployee]);

@@ -4,7 +4,7 @@ declare(strict_types=1);
 function canManageEmployees(array $user): bool { return $user['role'] === 'admin'; }
 function employeeRoles(): array { return ['admin' => 'Administrador', 'reception' => 'Recepción', 'professional' => 'Profesional']; }
 function employeeRecord(int $userId): array|false {
-    return query('SELECT u.id, u.name, u.email, u.role, u.active, e.phone, e.appointment_color FROM users u LEFT JOIN employees e ON e.user_id=u.id WHERE u.id=?', [$userId])->fetch();
+    return query('SELECT u.id, u.name, u.email, u.role, u.active, e.phone, e.appointment_color, e.specialty, e.hire_date, e.commission_percentage FROM users u LEFT JOIN employees e ON e.user_id=u.id WHERE u.id=?', [$userId])->fetch();
 }
 function employeeColor(?string $color): string { return preg_match('/^#[0-9a-fA-F]{6}$/D', $color ?? '') ? $color : '#0E3D3E'; }
 function employeeSwatch(?string $color): string {
@@ -25,6 +25,15 @@ function validateEmployee(array $source, bool $self, bool $new): array {
         $data['appointment_color'] = strtoupper(input($source, 'appointment_color'));
         if (!isset(employeeRoles()[$data['role']])) $errors['role'] = 'Seleccioná un rol válido.';
         if (!in_array($data['active'], ['0', '1'], true)) $errors['active'] = 'Seleccioná un estado válido.';
+        $data['specialty'] = input($source, 'specialty');
+        $data['hire_date'] = input($source, 'hire_date');
+        $data['commission_percentage'] = str_replace(',', '.', input($source, 'commission_percentage'));
+        if (textLength($data['specialty']) > 120) $errors['specialty'] = 'La especialidad admite hasta 120 caracteres.';
+        if ($data['hire_date'] !== '') {
+            $d = DateTimeImmutable::createFromFormat('!Y-m-d', $data['hire_date']);
+            if (!$d || $d->format('Y-m-d') !== $data['hire_date'] || $data['hire_date'] > date('Y-m-d')) $errors['hire_date'] = 'Ingresá una fecha de ingreso válida que no sea futura.';
+        }
+        if ($data['commission_percentage'] !== '' && (!preg_match('/^\d{1,3}(\.\d{1,2})?$/D', $data['commission_percentage']) || (float)$data['commission_percentage'] > 100)) $errors['commission_percentage'] = 'Ingresá una comisión entre 0 y 100 (hasta 2 decimales).';
         if (!preg_match('/^#[0-9A-F]{6}$/D', $data['appointment_color'])) $errors['appointment_color'] = 'Ingresá un color hexadecimal válido.';
         if ($new) {
             $data['password'] = isset($source['password']) && is_string($source['password']) ? $source['password'] : '';
@@ -61,7 +70,7 @@ function saveEmployee(int $actorId, ?int $id, array $data, bool $self): int {
         }
         query('INSERT INTO employees (user_id, active) SELECT id,active FROM users WHERE id=? AND NOT EXISTS (SELECT 1 FROM employees WHERE user_id=?)', [$id, $id]);
         if ($self) query('UPDATE employees SET phone=? WHERE user_id=?', [$data['phone'] ?: null, $id]);
-        else query('UPDATE employees SET phone=?, appointment_color=?, active=? WHERE user_id=?', [$data['phone'] ?: null, $data['appointment_color'], $data['active'], $id]);
+        else query('UPDATE employees SET phone=?, appointment_color=?, active=?, specialty=?, hire_date=?, commission_percentage=? WHERE user_id=?', [$data['phone'] ?: null, $data['appointment_color'], $data['active'], ($data['specialty'] ?? '') ?: null, ($data['hire_date'] ?? '') ?: null, ($data['commission_percentage'] ?? '') !== '' ? $data['commission_percentage'] : null, $id]);
         query('INSERT INTO employee_audit (actor_id,user_id,action) VALUES (?,?,?)', [$actorId, $id, $self ? 'profile_updated' : ($target ? 'employee_updated' : 'employee_created')]);
         $pdo->commit();
         return $id;

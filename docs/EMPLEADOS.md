@@ -79,3 +79,7 @@ La revisión visual del alcance #9 quedó realizada. No cerrar #9 ni marcar Hech
 - Reejecutadas sobre el estado actual: 15 pruebas unitarias, 18 HTTP/MySQL y 47 de empleados; las 80 pasan.
 - Trello consultado con sesión del navegador: tarjeta `08 · P0 · B · Gestión de empleados y perfil propio`, lista **En desarrollo**, asignada a Juan Manuel De Monasterio. Descripción y aceptación confirmadas; no se modificó la tarjeta.
 - El 401 de la consulta directa y el bloqueo del navegador descritos arriba corresponden a la revisión inicial; ya no impiden esta revisión por navegador.
+
+## Especialidad, fecha de ingreso y comisión
+
+El formulario de alta y edición de empleados (solo administración) incluye **especialidad** (hasta 120 caracteres), **fecha de ingreso** (válida y no futura) y **comisión** (0 a 100, hasta dos decimales, acepta coma). Los tres son opcionales y se pueden vaciar. El perfil muestra especialidad e ingreso; la comisión la ven administración y el propio empleado. El perfil propio no permite editar ninguno de estos campos.
