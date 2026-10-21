@@ -69,3 +69,7 @@ cita y precio no modificable por formulario.
 ### Filtros por empleado y medio de pago, y totales
 
 Además se filtra por **empleado** (el de la venta) y por **medio de pago** (ventas que recibieron algún cobro vigente con ese medio; un cobro reintegrado ya no cuenta). Sobre todo el resultado filtrado, no solo la página, se muestran tres totales: **vendido** (suma de ventas vigentes), **cobrado** (lo cobrado de esas ventas, sin pasar del total de cada una) y **pendiente** (la diferencia). Las ventas anuladas no suman. Con el filtro de medio de pago, "cobrado" cuenta todo lo cobrado de esas ventas, no solo lo pagado con ese medio.
+
+## Imprimir y exportar ventas (tarjeta #28)
+
+Desde el listado, **Imprimir** (`?page=sales-print`) y **Exportar CSV** (`?page=sales-export`) usan los mismos filtros que se ven en pantalla (búsqueda, estado, fechas, empleado y medio de pago). A diferencia del listado, no paginan: traen todas las ventas del resultado, hasta 5.000 (si hay más, el informe lo avisa y conviene acotar los filtros). El informe impreso lleva el período, los filtros aplicados, quién lo emitió y cuándo, y los totales de vendido, cobrado y pendiente. El CSV usa UTF-8 con BOM, `;` como separador y coma decimal, para abrirlo directo en una planilla en español; termina con una fila de totales. Las celdas que empiezan con `=`, `+`, `-` o `@` se prefijan con `'` para que no se ejecuten como fórmulas. Solo administración y recepción.
