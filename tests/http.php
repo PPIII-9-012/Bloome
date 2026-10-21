@@ -71,6 +71,13 @@ try {
     expect($status===403,'Permiso comprobado en servidor para GET');
     [$status] = request('client-edit&id='.$createdId,['csrf'=>$csrf,'first_name'=>'Intrusión','last_name'=>'Prueba'],true);
     expect($status===403 && query('SELECT first_name FROM clients WHERE id=?',[$createdId])->fetchColumn()==='QA actualizada','Permiso comprobado para POST sin alterar datos');
+    $deniedAudit = (int) query(
+        "SELECT COUNT(*) FROM audit_logs
+         WHERE actor_user_id = ? AND action = 'clients.edit'
+           AND entity = 'clients' AND entity_id = ? AND outcome = 'denied'",
+        [$professionalId, $createdId]
+    )->fetchColumn();
+    expect($deniedAudit === 1, 'Intento de edición denegado queda auditado');
     [, $body] = request('clients');
     request('logout',['csrf'=>token($body)],true);
     echo "\n$checks pruebas HTTP/MySQL aprobadas.\n";
@@ -78,7 +85,11 @@ try {
     fwrite(STDERR,'FAIL: '.$e->getMessage()."\n");
     $failed=true;
 } finally {
-    if ($createdId) query('DELETE FROM clients WHERE id=? AND email=?',[$createdId,$testEmail]);
+    if ($professionalId) query('DELETE FROM audit_logs WHERE actor_user_id = ?', [$professionalId]);
+    if ($createdId) {
+        query("DELETE FROM audit_logs WHERE entity = 'clients' AND entity_id = ?", [$createdId]);
+        query('DELETE FROM clients WHERE id=? AND email=?',[$createdId,$testEmail]);
+    }
     if ($professionalId) query('DELETE FROM users WHERE id=? AND email=?',[$professionalId,$professionalEmail]);
     query('DELETE FROM login_attempts WHERE identity_hash=?',[hash('sha256',$professionalEmail)]);
 }
