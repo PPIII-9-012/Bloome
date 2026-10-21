@@ -206,6 +206,14 @@ try {
     checkFinance(count(query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='cash_movements' AND COLUMN_NAME IN ('category_id','idempotency_key')")->fetchAll()) === 2 && (int)query("SELECT COUNT(*) FROM expense_categories WHERE name='Insumos'")->fetchColumn() === 1, 'la migración agrega categoría y clave al libro de caja y las categorías por defecto, sin duplicarlas');
     checkFinance(recordCashMovement($reception, 'income', 'cash', '5', 'tras migrar', '', 'caja-migrada-001') === recordCashMovement($reception, 'income', 'cash', '5', 'tras migrar', '', 'caja-migrada-001'), 'tras migrar el libro de caja deduplica por clave de operación');
 
+    // Base con cajas ya creadas pero sin observación ni resumen de cierre (tarjeta 20)
+    db()->exec('ALTER TABLE cash_sessions DROP COLUMN closing_note, DROP COLUMN closing_summary');
+    migrateFinanceModel(); migrateFinanceModel();
+    checkFinance(count(query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='cash_sessions' AND COLUMN_NAME IN ('closing_note','closing_summary')")->fetchAll()) === 2, 'la migración agrega observación y resumen de cierre a las cajas');
+    $closing = (int)currentCashSession()['id'];
+    $closed = closeCashSession($reception, $closing, '0', 'Cierre tras migrar, caja de prueba');
+    checkFinance(query('SELECT status FROM cash_sessions WHERE id=?', [$closing])->fetchColumn() === 'closed' && $closed['difference'] === -$closed['expected'] && openCashSession($reception, '0') > $closing, 'tras migrar se cierra una caja y se abre la siguiente');
+
     echo "\nTodas las verificaciones financieras pasaron: $checks.\n";
 } catch (Throwable $e) {
     fwrite(STDERR, $e->getMessage() . "\n" . $e->getFile() . ':' . $e->getLine() . "\n");

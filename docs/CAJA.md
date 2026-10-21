@@ -11,3 +11,16 @@ Pantalla `?page=caja` (menú "Caja", solo administración y recepción) y `?page
 - La tabla `expenses` heredada del esquema inicial no se usa: los gastos viven en el libro de caja para no contarlos dos veces.
 
 Pruebas: `php tests/cash.php` (HTTP, misma base temporal que `tests/sales.php`) y la migración en `tests/finance.php`.
+
+## Arqueo y cierre de caja (tarjeta #20)
+
+`?page=caja-close` (administración o recepción):
+
+- **Esperado**: efectivo inicial + entradas en efectivo − salidas en efectivo. Tarjetas, transferencias y otros medios no entran en el arqueo: se muestran **separados**, con su neto, para conciliarlos aparte contra el posnet o el banco. Ejemplo: inicial 1000 + efectivo 600 + tarjeta 400 − retiro 100 = efectivo esperado 1500 y tarjeta 400 aparte.
+- **Contado y diferencia**: se ingresa el efectivo contado (importe válido, sin signo) y "Ver diferencia" muestra lo que falta o sobra sin cerrar. Si la diferencia no es cero, la observación es obligatoria (5 a 255 caracteres).
+- **Cierre**: en una transacción con la caja bloqueada. Guarda esperado, contado, diferencia, observación, resumen por medio de pago, usuario y fecha. Los cobros y movimientos que llegan a la vez esperan o encuentran la caja cerrada.
+- **Una caja cerrada no se reabre ni se modifica**: no entran cobros, movimientos ni correcciones. Lo posterior (por ejemplo la anulación de una venta) se reintegra en la caja siguiente, y el cierre anterior queda idéntico.
+- Las señas cuentan una sola vez: entran al cobrarse y aplicarlas a una venta no mueve la caja.
+- **A validar con el centro**: si el efectivo del reintegro de una anulación supera lo que hay en caja, hoy se registra igual y el esperado queda en negativo. Se puede agregar un aviso o un bloqueo si lo prefieren.
+
+Pruebas: `php tests/cash-close.php` y la migración en `tests/finance.php`.

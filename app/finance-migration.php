@@ -19,6 +19,10 @@ function migrateFinanceModel(): void
         if (preg_match('/^\s*(?:--[^\n]*\n\s*)*CREATE TABLE IF NOT EXISTS (sales|sale_items|cash_sessions|cash_movements)\b/', $statement)) $pdo->exec($statement);
     }
 
+    // Observación y resumen del cierre de caja (tarjeta #20).
+    if (!$hasColumn('cash_sessions', 'closing_note')) $pdo->exec('ALTER TABLE cash_sessions ADD COLUMN closing_note VARCHAR(255) NULL AFTER difference');
+    if (!$hasColumn('cash_sessions', 'closing_summary')) $pdo->exec('ALTER TABLE cash_sessions ADD COLUMN closing_summary JSON NULL AFTER closing_note');
+
     // Categorías de gasto y clave de operación del libro de caja (tarjeta #19).
     $pdo->exec("INSERT IGNORE INTO expense_categories (name) VALUES ('Insumos'), ('Servicios'), ('Alquiler'), ('Sueldos y comisiones'), ('Limpieza y mantenimiento'), ('Otros')");
     if (!$hasColumn('cash_movements', 'category_id')) $pdo->exec('ALTER TABLE cash_movements ADD COLUMN category_id BIGINT UNSIGNED NULL AFTER reverses_id');
