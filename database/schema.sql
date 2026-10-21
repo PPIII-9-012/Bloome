@@ -334,6 +334,8 @@ CREATE TABLE IF NOT EXISTS cash_movements (
     amount DECIMAL(12,2) NOT NULL,
     payment_id BIGINT UNSIGNED NULL,
     reverses_id BIGINT UNSIGNED NULL,
+    category_id BIGINT UNSIGNED NULL,
+    idempotency_key CHAR(64) NULL,
     description VARCHAR(255) NULL,
     created_by BIGINT UNSIGNED NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -341,11 +343,15 @@ CREATE TABLE IF NOT EXISTS cash_movements (
     CONSTRAINT cash_movements_payment FOREIGN KEY (payment_id) REFERENCES payments(id),
     CONSTRAINT cash_movements_reverses FOREIGN KEY (reverses_id) REFERENCES cash_movements(id),
     CONSTRAINT cash_movements_creator FOREIGN KEY (created_by) REFERENCES users(id),
+    CONSTRAINT cash_movements_category FOREIGN KEY (category_id) REFERENCES expense_categories(id),
+    UNIQUE KEY cash_movements_idempotency (idempotency_key),
     CONSTRAINT valid_movement_amount CHECK (amount > 0),
     UNIQUE KEY one_reversal_per_movement (reverses_id),
     INDEX cash_movements_session (cash_session_id, created_at),
     INDEX cash_movements_payment (payment_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO expense_categories (name) VALUES ('Insumos'), ('Servicios'), ('Alquiler'), ('Sueldos y comisiones'), ('Limpieza y mantenimiento'), ('Otros');
 
 CREATE TABLE IF NOT EXISTS appointment_audit (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

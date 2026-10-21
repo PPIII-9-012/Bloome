@@ -78,26 +78,141 @@ function openCashSession(int $actorId, string $openingCash): int
     });
 }
 
-/** Ingreso, gasto o retiro manual en la caja abierta. */
-function recordCashMovement(int $actorId, string $kind, string $method, string $amount, string $description): int
+/** Categorías de gasto (activas por defecto), ordenadas por nombre. */
+function expenseCategories(bool $onlyActive = true): array
+{
+    return query('SELECT id, name, active FROM expense_categories' . ($onlyActive ? ' WHERE active=1' : '') . ' ORDER BY name, id')->fetchAll();
+}
+
+/** Nueva categoría de gasto (solo administración). Devuelve su id. */
+function addExpenseCategory(int $actorId, string $name): int
+{
+    $name = trim($name);
+    if (textLength($name) < 2 || textLength($name) > 100) throw new DomainException('El nombre de la categoría debe tener de 2 a 100 caracteres.', 422);
+    return financeTransaction(function () use ($actorId, $name) {
+        financeActor($actorId, ['admin']);
+        if (query('SELECT 1 FROM expense_categories WHERE name=?', [$name])->fetchColumn()) throw new DomainException('Ya existe una categoría con ese nombre.', 409);
+        query('INSERT INTO expense_categories (name) VALUES (?)', [$name]);
+        return (int)db()->lastInsertId();
+    });
+}
+
+/**
+ * Ingreso, gasto o retiro manual en la caja abierta. category_id (solo gastos) y idempotency_key (8 a 100 caracteres,
+ * generada al abrir el formulario) son opcionales: con clave, un reintento o doble clic devuelve el mismo movimiento.
+ */
+function recordCashMovement(int $actorId, string $kind, string $method, string $amount, string $description, string $categoryId = '', string $idempotencyKey = ''): int
 {
     $cents = moneyToCents($amount);
     $description = trim($description);
     if (!in_array($kind, ['income', 'expense', 'withdrawal'], true) || !isset(PAYMENT_METHODS[$method]) || $cents === null || $cents < 1 || textLength($description) > 255) {
         throw new DomainException('Revisá tipo, medio de pago e importe (mayor que cero). La descripción admite hasta 255 caracteres.', 422);
     }
-    return financeTransaction(function () use ($actorId, $kind, $method, $cents, $description) {
+    if ($categoryId !== '' && ($kind !== 'expense' || !ctype_digit($categoryId))) throw new DomainException('La categoría solo se usa en los gastos.', 422);
+    if ($idempotencyKey !== '' && (strlen($idempotencyKey) < 8 || strlen($idempotencyKey) > 100)) throw new DomainException('La clave de operación es inválida. Abrí el formulario de nuevo.', 422);
+    $hash = $idempotencyKey === '' ? null : hash('sha256', $actorId . '|' . $idempotencyKey);
+    $attempt = static fn() => financeTransaction(function () use ($actorId, $kind, $method, $cents, $description, $categoryId, $hash) {
         financeActor($actorId, ['admin', 'reception']);
         $session = currentCashSession(true);
         if (!$session) throw new DomainException('No hay una caja abierta. Abrí la caja para registrar movimientos.', 409);
+        if ($hash !== null) {
+            $same = query('SELECT id, amount, method, kind, description, category_id FROM cash_movements WHERE idempotency_key=?', [$hash])->fetch();
+            if ($same) {
+                if (decimalToCents($same['amount']) !== $cents || $same['method'] !== $method || $same['kind'] !== $kind || (string)($same['description'] ?? '') !== $description || (string)($same['category_id'] ?? '') !== $categoryId) {
+                    throw new DomainException('Esa clave de operación ya se usó con otros datos. Abrí el formulario de nuevo.', 409);
+                }
+                return (int)$same['id'];
+            }
+        }
+        if ($categoryId !== '' && !query('SELECT 1 FROM expense_categories WHERE id=? AND active=1', [$categoryId])->fetchColumn()) throw new DomainException('La categoría elegida no existe.', 422);
         if ($kind !== 'income') {
             $available = $method === 'cash' ? cashExpectedCents((int)$session['id']) : cashTotalsByMethod((int)$session['id'])[$method];
             if ($cents > $available) throw new DomainException('La salida supera lo disponible en ese medio de pago.', 422);
         }
-        query('INSERT INTO cash_movements (cash_session_id, direction, kind, method, amount, description, created_by) VALUES (?,?,?,?,?,?,?)',
-            [$session['id'], $kind === 'income' ? 'in' : 'out', $kind, $method, centsToDecimal($cents), $description ?: null, $actorId]);
+        query('INSERT INTO cash_movements (cash_session_id, direction, kind, method, amount, category_id, idempotency_key, description, created_by) VALUES (?,?,?,?,?,?,?,?,?)',
+            [$session['id'], $kind === 'income' ? 'in' : 'out', $kind, $method, centsToDecimal($cents), $categoryId ?: null, $hash, $description ?: null, $actorId]);
         return (int)db()->lastInsertId();
     });
+    try {
+        return $attempt();
+    } catch (PDOException $e) {
+        // Dos envíos simultáneos con la misma clave: el segundo choca con el índice único y relee el movimiento del primero.
+        if ($e->getCode() === '23000' && str_contains($e->getMessage(), 'cash_movements_idempotency')) return $attempt();
+        throw $e;
+    }
+}
+
+/**
+ * Corrige un movimiento manual (solo administración) con un movimiento inverso en la caja abierta. Los cobros y reintegros
+ * de ventas no se corrigen acá: se anula la venta. Un movimiento solo puede corregirse una vez.
+ */
+function reverseCashMovement(int $actorId, int $movementId, string $reason): int
+{
+    $reason = trim($reason);
+    if (textLength($reason) < 5 || textLength($reason) > 180) throw new DomainException('Indicá el motivo de la corrección (5 a 180 caracteres).', 422);
+    return financeTransaction(function () use ($actorId, $movementId, $reason) {
+        financeActor($actorId, ['admin']);
+        $session = currentCashSession(true);
+        if (!$session) throw new DomainException('No hay una caja abierta. Abrila para registrar la corrección.', 409);
+        $move = query('SELECT * FROM cash_movements WHERE id=? FOR UPDATE', [$movementId])->fetch();
+        if (!$move) throw new DomainException('Movimiento no encontrado.', 404);
+        if (!in_array($move['kind'], ['income', 'expense', 'withdrawal'], true) || $move['reverses_id'] !== null) throw new DomainException('Solo se corrigen ingresos, gastos y retiros manuales. Para un cobro, anulá la venta.', 409);
+        if (query('SELECT 1 FROM cash_movements WHERE reverses_id=?', [$movementId])->fetchColumn()) throw new DomainException('Ese movimiento ya fue corregido.', 409);
+        $cents = decimalToCents($move['amount']);
+        if ($move['direction'] === 'in') {
+            $available = $move['method'] === 'cash' ? cashExpectedCents((int)$session['id']) : cashTotalsByMethod((int)$session['id'])[$move['method']];
+            if ($cents > $available) throw new DomainException('Corregir este ingreso dejaría la caja en negativo para ese medio de pago.', 422);
+        }
+        query('INSERT INTO cash_movements (cash_session_id, direction, kind, method, amount, reverses_id, category_id, description, created_by) VALUES (?,?,?,?,?,?,?,?,?)',
+            [$session['id'], $move['direction'] === 'in' ? 'out' : 'in', $move['kind'], $move['method'], $move['amount'], $movementId, $move['category_id'], 'Corrección del movimiento #' . $movementId . ': ' . $reason, $actorId]);
+        return (int)db()->lastInsertId();
+    });
+}
+
+const CASH_KIND_LABELS = ['payment' => 'Cobro', 'refund' => 'Reintegro', 'income' => 'Ingreso', 'expense' => 'Gasto', 'withdrawal' => 'Retiro'];
+const CASH_PER_PAGE = 25;
+
+/** Caja a mostrar: la pedida si existe, si no la abierta, si no la última. false si nunca hubo cajas. */
+function cashSessionView(int $requestedId = 0): array|false
+{
+    $session = $requestedId > 0 ? query('SELECT s.*, o.name AS opened_by_name, c.name AS closed_by_name FROM cash_sessions s JOIN users o ON o.id=s.opened_by LEFT JOIN users c ON c.id=s.closed_by WHERE s.id=?', [$requestedId])->fetch() : false;
+    if (!$session) $session = query("SELECT s.*, o.name AS opened_by_name, c.name AS closed_by_name FROM cash_sessions s JOIN users o ON o.id=s.opened_by LEFT JOIN users c ON c.id=s.closed_by ORDER BY s.status='open' DESC, s.id DESC LIMIT 1")->fetch();
+    return $session;
+}
+
+/** Últimas cajas, de la más nueva a la más vieja. */
+function cashSessionList(int $limit = 10): array
+{
+    return query('SELECT id, status, opened_at, closed_at, opening_cash FROM cash_sessions ORDER BY id DESC LIMIT ' . max(1, $limit))->fetchAll();
+}
+
+/** Resumen por medio de pago de una caja: [method => [in, out, net]] en centavos, más 'cash_expected' (apertura + efectivo neto). */
+function cashSummary(int $sessionId): array
+{
+    $summary = [];
+    foreach (array_keys(PAYMENT_METHODS) as $method) $summary[$method] = ['in' => 0, 'out' => 0, 'net' => 0];
+    foreach (query('SELECT method, direction, SUM(amount) AS total FROM cash_movements WHERE cash_session_id=? GROUP BY method, direction', [$sessionId])->fetchAll() as $row) {
+        $cents = decimalToCents($row['total']);
+        $summary[$row['method']][$row['direction']] += $cents; $summary[$row['method']]['net'] += $row['direction'] === 'in' ? $cents : -$cents;
+    }
+    return $summary;
+}
+
+/** Movimientos de una caja con origen (venta o cita), categoría, autor y si ya fueron corregidos. Filtros: method, kind. Devuelve [filas, total]. */
+function cashLedger(int $sessionId, array $f, int $page): array
+{
+    $where = 'm.cash_session_id=?'; $params = [$sessionId];
+    if (isset(PAYMENT_METHODS[$f['method'] ?? ''])) { $where .= ' AND m.method=?'; $params[] = $f['method']; }
+    if (isset(CASH_KIND_LABELS[$f['kind'] ?? ''])) { $where .= ' AND m.kind=?'; $params[] = $f['kind']; }
+    $count = (int)query("SELECT COUNT(*) FROM cash_movements m WHERE $where", $params)->fetchColumn();
+    $offset = (max(1, $page) - 1) * CASH_PER_PAGE;
+    $rows = query("SELECT m.*, u.name AS user_name, cat.name AS category_name, pa.sale_id, pa.appointment_id, r.id AS reversed_by_id
+        FROM cash_movements m JOIN users u ON u.id=m.created_by
+        LEFT JOIN expense_categories cat ON cat.id=m.category_id
+        LEFT JOIN payment_allocations pa ON pa.id=(SELECT MIN(x.id) FROM payment_allocations x WHERE x.payment_id=m.payment_id)
+        LEFT JOIN cash_movements r ON r.reverses_id=m.id
+        WHERE $where ORDER BY m.id DESC LIMIT " . CASH_PER_PAGE . " OFFSET $offset", $params)->fetchAll();
+    return [$rows, $count];
 }
 
 /**

@@ -42,3 +42,19 @@
 .sales-table td::before{content:attr(data-label);display:block;font-size:12px;font-weight:600;color:var(--text-primary)}
 .sales-table td:last-child::before{content:none}
 }
+/* Caja diaria (tarjeta #19) */
+.cash-filters{grid-template-columns:1fr 1fr auto}
+.cash-total th,.cash-total td{border-top:2px solid #0e3d3e;font-weight:600}
+.amount-in{color:#166534;white-space:nowrap}
+.amount-out{color:#991b1b;white-space:nowrap}
+.cash-history{margin:0;padding-left:1.2rem}
+.cash-table .inline-form{margin:0;flex-wrap:nowrap}
+.cash-table .inline-form input{min-width:9rem}
+@media (max-width:900px){.cash-filters{grid-template-columns:1fr 1fr}}
+@media (max-width:640px){
+.cash-summary,.cash-summary tbody,.cash-table,.cash-table tbody{display:block}
+.cash-summary thead,.cash-table thead{display:none}
+.cash-summary tr,.cash-table tr{display:grid;grid-template-columns:1fr 1fr;gap:.5rem .75rem;padding:.75rem;border-bottom:1px solid #e5e7eb}
+.cash-summary td,.cash-table td,.cash-summary th{display:block;padding:0;border:0}
+.cash-summary td::before,.cash-table td::before{content:attr(data-label);display:block;font-size:12px;font-weight:600;color:var(--text-primary)}
+}

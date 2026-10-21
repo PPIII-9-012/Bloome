@@ -200,6 +200,12 @@ try {
     [$migrated] = recordPayment($reception, ['appointment_id' => $appointment, 'amount' => '50', 'method' => 'cash', 'idempotency_key' => 'post-migracion-1']);
     checkFinance($migrated > 1 && sqlRejected(fn() => query('INSERT INTO payment_allocations (payment_id, amount) VALUES (?, 1)', [$migrated])), 'tras migrar funciona el modelo nuevo y exige destino de la asignación');
 
+    // Base con el modelo de la tarjeta 14 pero sin categorías ni clave en el libro de caja (tarjeta 19)
+    db()->exec('ALTER TABLE cash_movements DROP FOREIGN KEY cash_movements_category, DROP INDEX cash_movements_idempotency, DROP COLUMN category_id, DROP COLUMN idempotency_key');
+    migrateFinanceModel(); migrateFinanceModel();
+    checkFinance(count(query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='cash_movements' AND COLUMN_NAME IN ('category_id','idempotency_key')")->fetchAll()) === 2 && (int)query("SELECT COUNT(*) FROM expense_categories WHERE name='Insumos'")->fetchColumn() === 1, 'la migración agrega categoría y clave al libro de caja y las categorías por defecto, sin duplicarlas');
+    checkFinance(recordCashMovement($reception, 'income', 'cash', '5', 'tras migrar', '', 'caja-migrada-001') === recordCashMovement($reception, 'income', 'cash', '5', 'tras migrar', '', 'caja-migrada-001'), 'tras migrar el libro de caja deduplica por clave de operación');
+
     echo "\nTodas las verificaciones financieras pasaron: $checks.\n";
 } catch (Throwable $e) {
     fwrite(STDERR, $e->getMessage() . "\n" . $e->getFile() . ':' . $e->getLine() . "\n");
