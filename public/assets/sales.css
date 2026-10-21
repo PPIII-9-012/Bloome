@@ -25,3 +25,20 @@
 .inline-form{display:flex;flex-wrap:wrap;align-items:flex-end;gap:.75rem 1rem;margin:.75rem 0}
 .inline-form p{flex:1 1 100%;margin:0}
 .inline-form .field{margin:0}
+/* Listado de ventas (tarjeta #17) */
+.sales-filters{display:grid;grid-template-columns:2fr 1.2fr 1fr 1fr auto;gap:.75rem 1rem;align-items:end;margin-bottom:1rem}
+.sales-filters .field{margin:0}
+.sales-filters input,.sales-filters select{width:100%;min-width:0}
+.sales-filter-actions{display:flex;align-items:center;gap:.75rem}
+.pagination-links{display:flex;gap:8px}
+.empty-state{text-align:center;padding:48px 24px;color:var(--text-muted)}
+.empty-state h3{margin:0 0 6px;font-size:16px;font-weight:600;color:var(--text-primary)}
+@media (max-width:900px){.sales-filters{grid-template-columns:1fr 1fr}.sales-filter-actions{grid-column:1/-1}}
+@media (max-width:640px){
+.sales-table,.sales-table tbody{display:block}
+.sales-table thead{display:none}
+.sales-table tr{display:grid;grid-template-columns:1fr 1fr;gap:.5rem .75rem;padding:.75rem;border-bottom:1px solid #e5e7eb}
+.sales-table td{display:block;padding:0;border:0}
+.sales-table td::before{content:attr(data-label);display:block;font-size:12px;font-weight:600;color:var(--text-primary)}
+.sales-table td:last-child::before{content:none}
+}

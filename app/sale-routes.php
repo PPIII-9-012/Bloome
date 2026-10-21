@@ -6,8 +6,22 @@ $deny = static function(int $status,string $message) use ($user,$page): never {
     render('message',compact('user','page','message')+['title'=>'Ventas']); exit;
 };
 if (!canEdit($user)) $deny(403,'Solo administración y recepción pueden ver y registrar ventas.');
-if (!in_array($method,['GET','POST'],true) || ($page==='sale' && $method!=='GET')) $deny(405,'Método no permitido.');
+if (!in_array($method,['GET','POST'],true) || (in_array($page,['sale','sales'],true) && $method!=='GET')) $deny(405,'Método no permitido.');
 
+if ($page==='sales') {
+    $filters=['q'=>substr(input($_GET,'q'),0,100),'status'=>input($_GET,'status'),'from'=>input($_GET,'from'),'to'=>input($_GET,'to')];
+    $filterError='';
+    if (!isset(COLLECTION_LABELS[$filters['status']])) $filters['status']='';
+    foreach (['from','to'] as $field) if ($filters[$field]!=='' && !validDate($filters[$field])) { $filterError='Revisá las fechas: usá el selector de fecha.'; $filters[$field]=''; }
+    if ($filters['from']!=='' && $filters['to']!=='' && $filters['from']>$filters['to']) { $filterError='La fecha "desde" no puede ser posterior a "hasta".'; $filters['from']=$filters['to']=''; }
+    $number=max(1,min(100000,(int)input($_GET,'p','1')));
+    [$sales,$count]=searchSales($filters,$number);
+    $pages=max(1,(int)ceil($count/SALES_PER_PAGE));
+    if ($number>$pages) { $number=$pages; [$sales,$count]=searchSales($filters,$number); }
+    if ($filterError!=='') http_response_code(422);
+    render('sales',compact('user','page','sales','count','number','pages','filters','filterError')+['title'=>'Ventas']);
+    exit;
+}
 if ($page==='sale') {
     $id=filter_var(input($_GET,'id'),FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
     $sale=$id?saleRecord($id):false;

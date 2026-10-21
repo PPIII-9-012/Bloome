@@ -46,6 +46,7 @@ Se agregan en un parche aparte porque dependen de la agenda (#42) y de la ficha 
 php tests/sales.php
 php tests/payments.php
 php tests/voids.php
+php tests/sales-list.php
 ```
 
 Crea y elimina su propia base. Verifica permisos, vista previa sin guardar, validaciones,
@@ -60,3 +61,7 @@ cita y precio no modificable por formulario.
 - **Seña** (`?page=deposit-new&appointment=N`): el dinero entra a la caja al cobrarla. Se aplica después, total o parcialmente, a una venta del mismo cliente desde la pantalla de cobro. Aplicarla no mueve la caja otra vez.
 - Acceso: botón "Cobrar" en el detalle de la venta y enlace "Registrar una seña" en la venta de una cita. El acceso desde la agenda y la ficha va con el parche de enlaces.
 - Anular (`?page=sale-void&id=N`, tarjeta 18): solo administración, con motivo de 5 a 255 caracteres. Reintegra los cobros con un movimiento inverso en la caja abierta (si hay cobros y no hay caja, ofrece abrirla) y libera las señas. Nada se borra.
+
+## Listado de ventas (tarjeta #17)
+
+`?page=sales` (menú "Ventas", solo administración y recepción): 12 ventas por página, de la más nueva a la más vieja. Se busca por cliente (nombre y apellido en cualquier orden) o por número de venta (`#16`), y se filtra por estado de cobro (sin cobrar, cobro parcial, cobrada, anulada) y por rango de fechas inclusivo. Los filtros se conservan al paginar. El saldo se calcula igual que en el detalle.

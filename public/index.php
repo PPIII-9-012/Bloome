@@ -60,7 +60,7 @@ try {
     if (in_array($page, ['holidays','holiday-new','holiday-delete','schedule'], true)) {
         require ROOT . '/app/schedule-routes.php';
     }
-    if (in_array($page, ['sale-new','sale'], true)) {
+    if (in_array($page, ['sale-new','sale','sales'], true)) {
         require ROOT . '/app/sale-routes.php';
     }
     if (in_array($page, ['sale-pay','sale-void','deposit-new'], true)) {
