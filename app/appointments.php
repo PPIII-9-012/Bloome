@@ -96,7 +96,12 @@ function appointmentsBetween(string $from, string $until, ?int $limit = null, ?i
     if ($status !== null) { $sql .= ' AND a.status=?'; $params[]=$status; }
     $sql .= ' ORDER BY a.starts_at, a.id';
     if ($limit !== null) $sql .= ' LIMIT ' . max(0, $limit);
-    $appointments = query($sql, $params)->fetchAll();
+    return withServiceNames(query($sql, $params)->fetchAll());
+}
+
+/** Adds service_name (all services of each appointment) to a list of appointment rows. */
+function withServiceNames(array $appointments): array
+{
     if (!$appointments) return [];
     $ids = array_column($appointments, 'id');
     $placeholders = implode(',', array_fill(0, count($ids), '?'));
@@ -109,4 +114,21 @@ function appointmentsBetween(string $from, string $until, ?int $limit = null, ?i
         $appointment['service_name'] = implode(' · ', $names[$appointment['id']] ?? []) ?: 'Sin servicios';
     }
     return $appointments;
+}
+
+/**
+ * Appointment history of one client, newest first. $from/$to are inclusive Y-m-d dates.
+ * Returns the requested page, the total matching rows and a count per status.
+ */
+function clientAppointments(int $clientId, ?string $from, ?string $to, int $limit, int $offset): array
+{
+    $where = 'a.client_id=?'; $params = [$clientId];
+    if ($from !== null) { $where .= ' AND a.starts_at >= ?'; $params[] = $from; }
+    if ($to !== null) { $where .= ' AND a.starts_at < ?'; $params[] = (new DateTimeImmutable($to))->modify('+1 day')->format('Y-m-d'); }
+    $byStatus = array_fill_keys(array_keys(appointmentStatuses()), 0);
+    foreach (query("SELECT a.status, COUNT(*) AS total FROM appointments a WHERE $where GROUP BY a.status", $params)->fetchAll() as $row) $byStatus[$row['status']] = (int)$row['total'];
+    $rows = query("SELECT a.*, u.name AS employee_name, e.appointment_color
+        FROM appointments a JOIN employees e ON e.id=a.employee_id JOIN users u ON u.id=e.user_id
+        WHERE $where ORDER BY a.starts_at DESC, a.id DESC LIMIT " . max(1, $limit) . ' OFFSET ' . max(0, $offset), $params)->fetchAll();
+    return ['rows' => withServiceNames($rows), 'total' => array_sum($byStatus), 'byStatus' => $byStatus];
 }
