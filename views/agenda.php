@@ -8,7 +8,8 @@ $until=new DateTimeImmutable($period['until']);
 $weekdays=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 ?>
 <div class="employee-heading"><h1>Agenda</h1><p>Turnos del <?= e($first->format('d/m/Y')) ?> al <?= e($until->modify('-1 day')->format('d/m/Y')) ?> · <?= count($appointments) ?> resultados</p></div>
-<?php if (canEdit($user)): ?><div class="figma-action-bar"><a class="figma-action-btn" href="<?= e(url('appointment-new')) ?>">Nuevo turno</a></div><?php endif; ?>
+<?php if (canEdit($user)): ?><div class="figma-action-bar"><a class="figma-action-btn" href="<?= e(url('appointment-new',$filters+['date'=>$date])) ?>">Nuevo turno</a></div><?php endif; ?>
+<?php if(!$filterError): ?><p class="agenda-output-links"><a href="<?= e(url('agenda-print',$filters+['date'=>$date])) ?>">Vista para imprimir</a> · <a href="<?= e(url('agenda-export',$filters+['date'=>$date])) ?>">Exportar CSV</a></p><?php endif; ?>
 <div class="figma-filters-card">
 <form method="get" class="agenda-controls">
 <input type="hidden" name="page" value="agenda">
@@ -41,11 +42,11 @@ $weekdays=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 <?php foreach($byDay[$key]??[] as $appointment): ?>
 <article class="agenda-appointment">
 <strong><?= e(substr($appointment['starts_at'],11,5).'–'.substr($appointment['ends_at'],11,5)) ?></strong>
-<p><?= e($appointment['first_name'].' '.$appointment['last_name']) ?></p>
+<p><a href="<?= e(url('client',['id'=>$appointment['client_id']])) ?>"><?= e($appointment['first_name'].' '.$appointment['last_name']) ?></a></p>
 <p><?= e($appointment['service_name']) ?></p>
 <p><?= employeeSwatch($appointment['appointment_color']??null) ?> <?= e($appointment['employee_name']) ?></p>
 <span class="badge <?= e($appointment['status']) ?>"><?= e(appointmentStatuses()[$appointment['status']]) ?></span>
-<?php if(canEdit($user)): ?><a class="agenda-edit" href="<?= e(url('appointment-edit',['id'=>$appointment['id']])) ?>">Editar turno</a><?php endif; ?>
+<?php if(canEdit($user)): ?><a class="agenda-edit" href="<?= e(url('appointment-edit',['id'=>$appointment['id'],'date'=>$date]+$filters)) ?>">Editar turno</a><?php endif; ?>
 </article>
 <?php endforeach; ?>
 </section>
