@@ -11,8 +11,7 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($password) < 12 || strl
 }
 try {
     $sqlFiles = [
-    'schema.sql',
-    'permissions_audit.sql'
+    'schema.sql'
 ];
 
 foreach ($sqlFiles as $file) {
