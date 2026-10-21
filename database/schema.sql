@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS employees (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT UNSIGNED NOT NULL UNIQUE,
     phone VARCHAR(30) NULL,
+    appointment_color CHAR(7) NOT NULL DEFAULT '#0E3D3E',
     specialty VARCHAR(120) NULL,
     hire_date DATE NULL,
     commission_percentage DECIMAL(5,2) NULL,
@@ -63,18 +64,53 @@ CREATE TABLE IF NOT EXISTS clients (
     INDEX clients_phone (phone)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS service_categories (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(120) NOT NULL,
+    color VARCHAR(7) NOT NULL DEFAULT '#8B5CF6',
+    sort_order INT NOT NULL DEFAULT 0,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE KEY unique_service_category_name (name)
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;
+
 
 CREATE TABLE IF NOT EXISTS services (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    reference VARCHAR(50) NULL,
+    category_id BIGINT UNSIGNED NULL,
     name VARCHAR(120) NOT NULL,
     duration_minutes SMALLINT UNSIGNED NOT NULL,
     price DECIMAL(12,2) NOT NULL,
+    tax_percentage DECIMAL(5,2) NOT NULL DEFAULT 0,
+    sort_order INT NOT NULL DEFAULT 0,
     active BOOLEAN NOT NULL DEFAULT TRUE,
-    CONSTRAINT valid_duration CHECK (duration_minutes > 0),
-    CONSTRAINT valid_price CHECK (price >= 0)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Saque service_id 
+    CONSTRAINT valid_duration
+        CHECK (duration_minutes > 0),
+
+    CONSTRAINT valid_price
+        CHECK (price >= 0),
+
+    CONSTRAINT valid_service_tax
+        CHECK (tax_percentage BETWEEN 0 AND 100),
+
+    CONSTRAINT fk_services_category
+        FOREIGN KEY (category_id)
+        REFERENCES service_categories(id)
+        ON DELETE RESTRICT,
+
+    UNIQUE KEY unique_services_reference (reference),
+    INDEX idx_services_category (category_id),
+    INDEX idx_services_order (sort_order, name)
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;
+
+
 CREATE TABLE IF NOT EXISTS appointments (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     client_id BIGINT UNSIGNED NOT NULL,
@@ -286,3 +322,110 @@ CREATE TABLE IF NOT EXISTS business_settings (
         ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT business_settings_singleton CHECK (id = 1)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS employee_audit (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    actor_id BIGINT UNSIGNED NOT NULL,
+    user_id BIGINT UNSIGNED NOT NULL,
+    action VARCHAR(30) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX employee_audit_user (user_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS holidays (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    holiday_date DATE NOT NULL UNIQUE,
+    description VARCHAR(190) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX holidays_date (holiday_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS employee_vacations (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    description VARCHAR(190) NOT NULL,
+    starts_at DATE NOT NULL,
+    ends_at DATE NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT vacations_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT valid_vacation_dates CHECK (ends_at >= starts_at),
+    INDEX vacations_interval (user_id, starts_at, ends_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS employee_schedules (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    day_of_week TINYINT UNSIGNED NOT NULL,
+    start_time TIME NULL,
+    end_time TIME NULL,
+    is_working BOOLEAN NOT NULL DEFAULT TRUE,
+    break_start TIME NULL,
+    break_end TIME NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT schedules_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY employee_day (user_id, day_of_week),
+    CONSTRAINT valid_emp_day CHECK (day_of_week BETWEEN 1 AND 7)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS business_schedules (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    day_of_week TINYINT UNSIGNED NOT NULL UNIQUE,
+    start_time TIME NULL,
+    end_time TIME NULL,
+    is_open BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT valid_biz_day CHECK (day_of_week BETWEEN 1 AND 7)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- Catálogo de permisos por acción. No se agregan columnas a users:
+-- cada usuario hereda los permisos de su rol.
+CREATE TABLE IF NOT EXISTS permissions (
+    code VARCHAR(80) PRIMARY KEY,
+    description VARCHAR(150) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS role_permissions (
+    role ENUM('admin', 'reception', 'professional') NOT NULL,
+    permission_code VARCHAR(80) NOT NULL,
+    PRIMARY KEY (role, permission_code),
+    CONSTRAINT fk_role_permission_permission
+        FOREIGN KEY (permission_code) REFERENCES permissions(code)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    actor_user_id BIGINT UNSIGNED NULL,
+    action VARCHAR(80) NOT NULL,
+    entity VARCHAR(80) NOT NULL,
+    entity_id BIGINT UNSIGNED NULL,
+    outcome ENUM('success', 'denied') NOT NULL,
+    details JSON NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_audit_user
+        FOREIGN KEY (actor_user_id) REFERENCES users(id)
+        ON DELETE SET NULL,
+    INDEX idx_audit_user_date (actor_user_id, created_at),
+    INDEX idx_audit_entity (entity, entity_id),
+    INDEX idx_audit_outcome_date (outcome, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO permissions (code, description) VALUES
+('clients.view', 'Ver clientes'),
+('clients.create', 'Crear clientes'),
+('clients.edit', 'Editar clientes'),
+('audit.view', 'Consultar auditoría');
+
+-- Admin tiene todos los permisos definidos.
+INSERT IGNORE INTO role_permissions (role, permission_code)
+SELECT 'admin', code FROM permissions;
+
+-- Recepción puede consultar y mantener clientes.
+INSERT IGNORE INTO role_permissions (role, permission_code)
+SELECT 'reception', code FROM permissions
+WHERE code IN ('clients.view', 'clients.create', 'clients.edit');
+
+-- Los profesionales pueden consultar clientes, sin modificarlos.
+INSERT IGNORE INTO role_permissions (role, permission_code)
+VALUES ('professional', 'clients.view');

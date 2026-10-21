@@ -70,6 +70,20 @@
         </article>
     </section>
 
+    <section class="config-section">
+        <div class="config-section-heading">
+            <h2>Seguridad</h2>
+            <p>Consultá las acciones registradas en el sistema, incluidos los cambios de roles.</p>
+        </div>
+        <article class="config-settings-card">
+            <div class="config-setting-info">
+                <h3>Registro de acciones</h3>
+                <p>Quién realizó cada acción, cuándo ocurrió y si se completó o fue denegada.</p>
+            </div>
+            <a class="config-action-link" href="<?= e(url('auditoria')) ?>">Ver registros <span aria-hidden="true">→</span></a>
+        </article>
+    </section>
+
     <!-- 2. VENTAS -->
     <section class="config-section">
         <div class="config-section-heading">

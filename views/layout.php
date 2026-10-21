@@ -8,8 +8,8 @@
     <link rel="stylesheet" href="/assets/app.css">
     <link rel="stylesheet" href="/assets/configuracion.css">
     <link rel="stylesheet" href="/assets/configuracion-formularios.css">
-    <link rel="stylesheet" href="<?= e(url('assets/configuracion-diseno.css')) ?>">
-
+    <link rel="stylesheet" href="/assets/configuracion-diseno.css">
+    <link rel="stylesheet" href="/assets/configuracion-empleados.css">
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 </head>
 <body class="<?= empty($user) ? 'guest-view' : 'app-view' ?>">

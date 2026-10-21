@@ -83,3 +83,22 @@ Con el servidor local iniciado y `.env` configurado, `php tests/http.php` ejecut
 Los usuarios profesionales tienen acceso de lectura al listado de clientes y agenda en este piloto de un solo centro. Ese alcance debe revisarse antes de usar datos personales reales. No hay aislamiento entre múltiples centros.
 
 Próximo incremento: ficha de cliente y CRUD de citas con transacciones y validación de solapamientos, horarios y ausencias. No habilitar reservas operativas hasta completar esas reglas.
+
+
+## Permisos por rol y auditoría
+
+Los permisos se definen en `permissions` y se asignan a roles mediante
+`role_permissions`; no son columnas de `users`. La aplicación comprueba los
+permisos en el servidor antes de mostrar el listado o procesar altas y
+ediciones de clientes. Las acciones exitosas y los intentos de escritura
+denegados se registran en `audit_logs`.
+
+Roles iniciales:
+- `admin`: todos los permisos cargados en `permissions`.
+- `reception`: consulta, alta y edición de clientes.
+- `professional`: consulta de clientes, sin alta ni edición.
+
+Para aplicar estas tablas y sus asignaciones en una base existente, ejecutá
+el instalador habitual del proyecto después de verificar `.env` y hacer un
+respaldo de la base. El esquema usa `CREATE TABLE IF NOT EXISTS` e
+`INSERT IGNORE`, por lo que no elimina datos existentes.
