@@ -118,6 +118,9 @@ try {
     if (in_array($page, ['holidays','holiday-new','holiday-delete','schedule'], true)) {
         require ROOT . '/app/schedule-routes.php';
     }
+    if (in_array($page, ['clients-export', 'clients-template', 'clients-import'], true)) {
+        require ROOT . '/app/client-import-routes.php';
+    }
     if (in_array($page, ['estadisticas','estadisticas-ventas','estadisticas-gastos','estadisticas-horas'], true)) {
         require ROOT . '/app/stats-routes.php';
     }
