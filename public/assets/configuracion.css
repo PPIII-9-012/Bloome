@@ -330,3 +330,12 @@
         padding: 0.7rem 0.55rem;
     }
 }
+
+@media (max-width: 650px) {
+    .config-action-link { margin-left: 0; }
+    .config-settings-card { flex-wrap: wrap; }
+}
+
+@media (max-width: 650px) {
+    .config-page-header { flex-direction: column; align-items: flex-start; }
+}

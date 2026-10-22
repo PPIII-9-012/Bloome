@@ -159,7 +159,20 @@ try {
             )->fetchColumn(),
         ];
         $appointments = appointmentsBetween($today, date('Y-m-d', strtotime('+1 day')), 6);
-        render('dashboard', compact('user', 'page', 'stats', 'appointments') + ['title' => 'Tu centro, en un vistazo']);
+        // Indicadores de ventas y caja: solo administración y recepción. Mismos cálculos que Ventas y Caja.
+        $money = null;
+        if (canEdit($user)) {
+            [, , $todayTotals] = searchSales(['from' => $today, 'to' => $today], 1);
+            $openCash = currentCashSession();
+            $money = [
+                'sold' => $todayTotals['sold'],
+                'collected' => $todayTotals['collected'],
+                'pending' => $todayTotals['pending'],
+                'cashOpen' => (bool)$openCash,
+                'cashExpected' => $openCash ? cashExpectedCents((int)$openCash['id']) : 0,
+            ];
+        }
+        render('dashboard', compact('user', 'page', 'stats', 'appointments', 'money') + ['title' => 'Tu centro, en un vistazo']);
     } elseif ($page === 'clients' && $method === 'GET') {
         if (!hasPermission($user, 'clients.view')) {
             http_response_code(403);

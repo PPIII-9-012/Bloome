@@ -6,14 +6,6 @@
         <span>Nuevo Cliente</span>
     </a>
     <?php endif; ?>
-    <button type="button" class="figma-action-btn" onclick="alert('Exportación en formato CSV planificada para la próxima entrega.');">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        <span>Exportar</span>
-    </button>
-    <button type="button" class="figma-action-btn" onclick="alert('Importación de clientes planificada para la próxima entrega.');">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        <span>Importar</span>
-    </button>
 </div>
 
 <!-- FIGMA SEARCH ROW -->
@@ -25,28 +17,28 @@
         <?php if ($search !== ''): ?>
             <a class="clear-filter-link" href="<?= e(url('clients')) ?>" title="Limpiar búsqueda">✕ Limpiar</a>
         <?php endif; ?>
-        <button type="submit" class="button-secondary" style="padding: 6px 14px; font-size: 12px;">Buscar</button>
+        <button type="submit" class="button-secondary btn-xs">Buscar</button>
     </form>
 </div>
 
 <!-- FIGMA TABLE (05-clientes.png) -->
 <div class="figma-table-card">
     <?php if (!$clients): ?>
-        <div style="text-align: center; padding: 48px 24px; color: var(--text-muted);">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 12px; color: var(--teal-dark);"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            <h3 style="margin: 0 0 6px; font-size: 16px; font-weight: 600; color: var(--text-primary);"><?= $search !== '' ? 'No encontramos coincidencias.' : 'No hay clientes registrados todavía.' ?></h3>
-            <p style="margin: 0; font-size: 13px;"><?= $search !== '' ? 'Probá con otro nombre, teléfono o correo.' : 'Agregá el primer cliente usando el botón superior.' ?></p>
+        <div class="empty-block">
+            <svg class="empty-icon" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <h3 class="empty-title"><?= $search !== '' ? 'No encontramos coincidencias.' : 'No hay clientes registrados todavía.' ?></h3>
+            <p class="empty-text"><?= $search !== '' ? 'Probá con otro nombre, teléfono o correo.' : 'Agregá el primer cliente usando el botón superior.' ?></p>
         </div>
     <?php else: ?>
         <table class="figma-table">
             <thead>
                 <tr>
-                    <th style="width: 100px;">Código</th>
+                    <th class="col-100">Código</th>
                     <th>Nombre</th>
                     <th>Apellido</th>
                     <th>Teléfono</th>
                     <th>Ingresos</th>
-                    <th style="width: 80px; text-align: right;"><span class="sr-only">Acciones</span>☰</th>
+                    <th class="col-80r"><span class="sr-only">Acciones</span>☰</th>
                 </tr>
             </thead>
             <tbody>
@@ -57,7 +49,7 @@
                     <td><?= e($client['last_name']) ?></td>
                     <td><?= e($client['phone'] ?: ($client['email'] ?: 'Sin teléfono')) ?></td>
                     <td>—</td>
-                    <td style="text-align: right;">
+                    <td class="text-right">
                         <a class="table-action-edit" href="<?= e(url('client', ['id' => $client['id']])) ?>" aria-label="Ver ficha de <?= e($client['first_name'] . ' ' . $client['last_name']) ?>"><span>Ver ficha</span></a>
                         <?php if (canEdit($user)): ?>
                         <a class="table-action-edit" href="<?= e(url('client-edit', ['id' => $client['id']])) ?>" aria-label="Editar a <?= e($client['first_name'] . ' ' . $client['last_name']) ?>">
@@ -65,7 +57,7 @@
                             <span aria-hidden="true">↗</span>
                         </a>
                         <?php else: ?>
-                        <span style="color: var(--text-muted); font-size: 12px;">Solo lectura</span>
+                        <span class="cell-note">Solo lectura</span>
                         <?php endif; ?>
                     </td>
                 </tr>
@@ -75,12 +67,12 @@
 
         <div class="figma-table-pagination">
             <span><?= e($count) ?> clientes · Página <?= e($number) ?> de <?= e($pages) ?></span>
-            <div style="display: flex; gap: 8px;">
+            <div class="flex-gap-8">
                 <?php if ($number > 1): ?>
-                    <a class="button-secondary" style="padding: 6px 12px; font-size: 12px;" href="<?= e(url('clients', ['q' => $search, 'p' => $number - 1])) ?>">Anterior</a>
+                    <a class="button-secondary btn-xs2" href="<?= e(url('clients', ['q' => $search, 'p' => $number - 1])) ?>">Anterior</a>
                 <?php endif; ?>
                 <?php if ($number < $pages): ?>
-                    <a class="button-secondary" style="padding: 6px 12px; font-size: 12px;" href="<?= e(url('clients', ['q' => $search, 'p' => $number + 1])) ?>">Siguiente</a>
+                    <a class="button-secondary btn-xs2" href="<?= e(url('clients', ['q' => $search, 'p' => $number + 1])) ?>">Siguiente</a>
                 <?php endif; ?>
             </div>
         </div>

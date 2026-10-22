@@ -1,5 +1,4 @@
 @charset "UTF-8";
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
 :root {
     --teal-dark: #0e3d3e;
@@ -1143,3 +1142,55 @@ button {
 .stats-legend { margin-top:6px; font-size:12px; color:#5b6b66; }
 .stats-key { display:inline-block; width:12px; height:12px; border-radius:2px; vertical-align:middle; margin:0 4px 0 10px; }
 .figma-table tfoot th, .figma-table tfoot td { font-weight:700; border-top:2px solid #d7e1dd; }
+
+/* Estilos que antes estaban en línea (la política de seguridad no los aplica): pasan a clases. */
+.mb-20 { margin-bottom: 20px; }
+.back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--teal-dark); margin-bottom: 12px; }
+.ph-title { margin: 0; font-size: 24px; font-weight: 700; color: var(--text-primary); }
+.ph-sub { margin: 4px 0 0; color: var(--text-muted); font-size: 13px; }
+.ph-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+.btn-compact { padding: 8px 16px; display: inline-flex; align-items: center; gap: 6px; }
+.btn-xs { padding: 6px 14px; font-size: 12px; }
+.btn-xs2 { padding: 6px 12px; font-size: 12px; }
+.section-bar { margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+.section-title { font-size: 17px; font-weight: 600; margin: 0; color: var(--text-primary); }
+.link-small { font-size: 12px; font-weight: 600; color: var(--teal-dark); }
+.empty-block { text-align: center; padding: 48px 24px; color: var(--text-muted); }
+.empty-icon { margin-bottom: 12px; color: var(--teal-dark); }
+.empty-title { margin: 0 0 6px; font-size: 16px; font-weight: 600; color: var(--text-primary); }
+.empty-text { margin: 0; font-size: 13px; }
+.col-140 { width: 140px; } .col-130r { width: 130px; text-align: right; } .col-100 { width: 100px; } .col-80r { width: 80px; text-align: right; }
+.cell-time { font-weight: 600; color: var(--teal-dark); }
+.cell-sub { display: block; color: var(--text-muted); font-weight: normal; font-size: 11px; }
+.cell-name { display: block; font-size: 14px; color: var(--text-primary); }
+.cell-note { color: var(--text-muted); font-size: 12px; }
+.cell-plain { color: var(--text-secondary); }
+.text-right { text-align: right; }
+.flex-gap-8 { display: flex; gap: 8px; }
+
+.kpi-link { text-decoration: none; color: inherit; }
+.kpi-link:hover, .kpi-link:focus-visible { border-color: var(--teal-dark); }
+
+/* Pantallas angostas: el contenido no debe ensanchar la página; las tablas se desplazan dentro de su tarjeta. */
+.figma-app-container, .figma-main { min-width: 0; box-sizing: border-box; }
+.figma-table-card, .category-table-wrap { overflow-x: auto; }
+@media (max-width: 650px) {
+    .form-grid, .filter-grid, .sales-filters, .cash-actions, .config-actions { grid-template-columns: minmax(0, 1fr); }
+    .field, .field input, .field select, .field textarea { min-width: 0; max-width: 100%; box-sizing: border-box; }
+}
+.figma-action-bar { flex-wrap: wrap; }
+.category-table-wrapper { overflow-x: auto; }
+.config-action-link { max-width: 100%; box-sizing: border-box; }
+.figma-table-card, .category-table-wrapper { position: relative; }
+@media (max-width: 650px) { .config-action-link { margin-left: 0; } }
+
+/* Registro de acciones (antes un bloque <style> que la política de seguridad no aplicaba) */
+.audit-page { max-width: 1200px; margin: 0 auto 2rem; padding: 1.5rem; background: var(--surface-color,#fff); border: 1px solid var(--border-color,#ebe5eb); border-radius: 16px; }
+.audit-page .table-responsive { overflow-x: auto; }
+.audit-page table { width: 100%; border-collapse: collapse; }
+.audit-page th,.audit-page td { padding: .8rem; text-align: left; border-bottom: 1px solid var(--border-color,#ebe5eb); vertical-align: top; }
+.audit-page th { font-size: .75rem; text-transform: uppercase; color: var(--muted-color,#716775); }
+.audit-page td { overflow-wrap: anywhere; }
+.audit-denied { color:#982f38!important; background:#fff0f0!important; }
+.audit-success { color:#23764b!important; background:#e8f6ed!important; }
+input, select, textarea { max-width: 100%; box-sizing: border-box; }

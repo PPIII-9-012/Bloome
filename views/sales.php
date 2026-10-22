@@ -2,6 +2,7 @@
 $active=array_filter($filters,fn($v)=>$v!=='');
 $pageUrl=fn(int $n)=>url('sales',$active+['p'=>$n]);
 ?>
+<h1 class="ph-title mb-20">Ventas</h1>
 <div class="figma-action-bar">
 <a class="figma-action-btn" href="<?= e(url('sale-new')) ?>"><span>Nueva venta</span></a>
 <a class="figma-action-btn" href="<?= e(url('sales-print',$active)) ?>"><span>Imprimir</span></a>

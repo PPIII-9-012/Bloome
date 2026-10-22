@@ -48,13 +48,3 @@ $actionLabels = [
         </div>
     <?php endif; ?>
 </section>
-<style>
-.audit-page { max-width: 1200px; margin: 0 auto 2rem; padding: 1.5rem; background: var(--surface-color,#fff); border: 1px solid var(--border-color,#ebe5eb); border-radius: 16px; }
-.audit-page .table-responsive { overflow-x: auto; }
-.audit-page table { width: 100%; border-collapse: collapse; }
-.audit-page th,.audit-page td { padding: .8rem; text-align: left; border-bottom: 1px solid var(--border-color,#ebe5eb); vertical-align: top; }
-.audit-page th { font-size: .75rem; text-transform: uppercase; color: var(--muted-color,#716775); }
-.audit-page td { overflow-wrap: anywhere; }
-.audit-denied { color:#982f38!important; background:#fff0f0!important; }
-.audit-success { color:#23764b!important; background:#e8f6ed!important; }
-</style>
