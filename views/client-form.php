@@ -1,9 +1,9 @@
-<div style="margin-bottom: 20px;">
-    <a href="<?= e($clientBackUrl ?? url('clients')) ?>" style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--teal-dark); margin-bottom: 12px;">
+<div class="mb-20">
+    <a href="<?= e($clientBackUrl ?? url('clients')) ?>" class="back-link">
         <span aria-hidden="true">←</span> <?= !empty($draftToken)?'Volver al turno':'Volver a Clientes' ?>
     </a>
-    <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: var(--text-primary);"><?= e($title) ?></h1>
-    <p style="margin: 4px 0 0; color: var(--text-muted); font-size: 13px;">Completá los datos del cliente para su historial y atención en el centro.</p>
+    <h1 class="ph-title"><?= e($title) ?></h1>
+    <p class="ph-sub">Completá los datos del cliente para su historial y atención en el centro.</p>
 </div>
 
 <div class="form-card">

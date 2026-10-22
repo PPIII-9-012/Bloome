@@ -33,7 +33,7 @@
                 <button class="figma-btn-acceder" type="submit">ACCEDER</button>
 
                 <div class="login-forgot-wrap">
-                    <a href="#" class="login-forgot-link" onclick="alert('Contactá al administrador de tu centro para gestionar el restablecimiento de tu contraseña.'); return false;">¿Has olvidado tu contraseña?</a>
+                    <span class="login-forgot-link">¿Olvidaste tu contraseña? Pedile al administrador del centro que la restablezca.</span>
                 </div>
             </form>
         </div>
