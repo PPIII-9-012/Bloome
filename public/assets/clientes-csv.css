@@ -1,0 +1,13 @@
+/* Importar y exportar clientes (#22). Sin estilos en línea: la política de seguridad solo admite hojas propias. */
+.csv-head { margin-bottom: 20px; }
+.csv-back { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--teal-dark); margin-bottom: 12px; }
+.csv-title { margin: 0; font-size: 24px; font-weight: 700; color: var(--text-primary); }
+.csv-sub { margin: 4px 0 12px; color: var(--text-muted); font-size: 13px; }
+.csv-h2 { margin: 0 0 12px; font-size: 17px; font-weight: 600; }
+.csv-h3 { margin: 20px 0 4px; font-size: 15px; font-weight: 600; }
+.csv-summary { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 0; padding: 0; list-style: none; }
+.csv-table { margin-top: 8px; }
+.csv-result, .form-card + .form-card { margin-top: 20px; }
+.csv-help { margin: 0; padding-left: 20px; display: grid; gap: 6px; color: var(--text-secondary); font-size: 13px; }
+.csv-help code { font-size: 12px; overflow-wrap: anywhere; }
+.csv-table { display: block; overflow-x: auto; }

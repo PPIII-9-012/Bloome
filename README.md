@@ -82,6 +82,7 @@ php tests/sales-list.php  # listado y búsqueda de ventas (HTTP); mismas credenc
 php tests/reports.php      # informes imprimibles y CSV de ventas y caja (HTTP); mismas credenciales
 php tests/stats.php        # estadísticas, género del cliente y conciliación con ventas (HTTP); mismas credenciales
 php tests/journey.php      # recorrido integrado cliente → turno → venta → cobro → caja → estadísticas, por rol; mismas credenciales
+php tests/client-import.php # importar y exportar clientes en CSV (HTTP); mismas credenciales
 php tests/cash.php   # caja diaria, movimientos y gastos (HTTP); mismas credenciales
 php tests/cash-close.php  # arqueo y cierre de caja (HTTP); mismas credenciales
 ```

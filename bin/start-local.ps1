@@ -23,7 +23,7 @@ function Test-ProjectProcess([string] $PidFile, [string] $ExpectedExe) {
 
 $mysqlPidFile = Join-Path $projectRoot '.tools/mysql.pid'
 if (!(Test-ProjectProcess $mysqlPidFile $mysqlExe)) {
-    $mysqlArgs = @('--no-defaults', '--basedir=C:/Program Files/MySQL/MySQL Server 8.0', ('--datadir={0}' -f $mysqlData), '--port=3308', '--bind-address=127.0.0.1', '--mysqlx=0', ('--log-error={0}' -f (Join-Path $projectRoot '.tools/mysql.log')))
+    $mysqlArgs = @('--no-defaults', '--basedir="C:/Program Files/MySQL/MySQL Server 8.0"', ('--datadir="{0}"' -f $mysqlData), '--port=3308', '--bind-address=127.0.0.1', '--mysqlx=0', ('--log-error="{0}"' -f (Join-Path $projectRoot '.tools/mysql.log')))
     $mysqlProcess = Start-Process -FilePath $mysqlExe -ArgumentList $mysqlArgs -WindowStyle Hidden -PassThru
     $mysqlProcess.Id | Set-Content -LiteralPath $mysqlPidFile
 }
