@@ -34,7 +34,7 @@ $fmtBucket=function(string $l) use ($report){ return ($report['bucket']??'')==='
 <?php if(!$report['rows']): ?>
 <div class="figma-table-card"><div class="empty-state" role="status"><h3>No hay ventas con esos filtros.</h3><p>Probá con otro período o quitá algún filtro.</p></div></div>
 <?php else:
-    $chart=['rows'=>array_map(fn($r)=>[$mode==='general'?$fmtBucket($r['label']):$r['label'],$r['sold'],$r['collected'],moneyFormat($r['sold'])],$report['rows']),'series'=>['Vendido','Cobrado'],'alt'=>'Vendido y cobrado: '.$views[$mode]];
+    $chart=['rows'=>array_map(fn($r)=>[$mode==='general'?$fmtBucket($r['label']):$r['label'],$r['sold'],$r['collected'],moneyFormat($r['sold'])],$report['rows']),'series'=>['Vendido','Cobrado'],'alt'=>'Vendido y cobrado: '.$views[$mode],'type'=>$mode==='general'?'line':'bar'];
     require ROOT.'/views/stats-chart.php'; ?>
 <div class="figma-table-card"><div class="employee-table-wrap"><table class="figma-table">
 <thead><tr><th scope="col"><?= e($mode==='general'?$bucketName:'Detalle') ?></th><th scope="col">Ventas</th><th scope="col">Vendido</th><th scope="col">Cobrado</th><th scope="col">Pendiente</th></tr></thead><tbody>
@@ -52,7 +52,7 @@ $fmtBucket=function(string $l) use ($report){ return ($report['bucket']??'')==='
 <?php if(!$report['rows']): ?>
 <div class="figma-table-card"><div class="empty-state" role="status"><h3>No hay gastos con esos filtros.</h3><p>Probá con otro período o quitá la categoría.</p></div></div>
 <?php else:
-    $chart=['rows'=>array_map(fn($r)=>[$mode==='general'?$fmtBucket($r['label']):$r['label'],max(0,$r['amount']),null,moneyFormat($r['amount'])],$report['rows']),'series'=>['Gastos',null],'alt'=>'Gastos: '.$views[$mode]];
+    $chart=['rows'=>array_map(fn($r)=>[$mode==='general'?$fmtBucket($r['label']):$r['label'],max(0,$r['amount']),null,moneyFormat($r['amount'])],$report['rows']),'series'=>['Gastos',null],'alt'=>'Gastos: '.$views[$mode],'type'=>($mode==='categoria'?'donut':'bar')];
     require ROOT.'/views/stats-chart.php'; ?>
 <div class="figma-table-card"><div class="employee-table-wrap"><table class="figma-table">
 <thead><tr><th scope="col"><?= e($mode==='general'?$bucketName:'Categoría') ?></th><th scope="col">Movimientos</th><th scope="col">Importe</th></tr></thead><tbody>
@@ -69,7 +69,7 @@ $fmtBucket=function(string $l) use ($report){ return ($report['bucket']??'')==='
 <?php if(!$report['rows']): ?>
 <div class="figma-table-card"><div class="empty-state" role="status"><h3>No hay citas completadas en ese período.</h3><p>Probá con otro rango de fechas o con otro empleado.</p></div></div>
 <?php else:
-    $chart=['rows'=>array_map(fn($r)=>[$r['label'],$r['minutes'],null,statsDuration($r['minutes'])],$report['rows']),'series'=>['Horas',null],'alt'=>'Horas por empleado'];
+    $chart=['rows'=>array_map(fn($r)=>[$r['label'],$r['minutes'],null,statsDuration($r['minutes'])],$report['rows']),'series'=>['Horas',null],'alt'=>'Horas por empleado','type'=>'bar'];
     require ROOT.'/views/stats-chart.php'; ?>
 <div class="figma-table-card"><div class="employee-table-wrap"><table class="figma-table">
 <thead><tr><th scope="col">Empleado</th><th scope="col">Citas completadas</th><th scope="col">Horas</th></tr></thead><tbody>

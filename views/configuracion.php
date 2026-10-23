@@ -1,6 +1,6 @@
 <div class="config-page">
 
-    <header class="config-page-header">
+    <header class="page-heading config-page-header">
         <div>
             <span class="config-eyebrow">BLOOME / PREFERENCIAS</span>
             <h1>Configuración</h1>
@@ -147,7 +147,7 @@
                 <h3>Horarios</h3>
                 <p>Definí los días de apertura y las franjas horarias de atención del centro.</p>
             </div>
-            <a class="config-action-link" href="<?= e(url('configuracion', ['seccion' => 'horarios'])) ?>">
+            <a class="config-action-link" href="<?= e(url('schedule')) ?>">
                 Configurar <span aria-hidden="true">→</span>
             </a>
         </article>
@@ -165,7 +165,7 @@
                 <h3>Festivos</h3>
                 <p>Administrá los días festivos y los cierres excepcionales del establecimiento.</p>
             </div>
-            <a class="config-action-link" href="<?= e(url('configuracion', ['seccion' => 'festivos'])) ?>">
+            <a class="config-action-link" href="<?= e(url('holidays')) ?>">
                 Gestionar <span aria-hidden="true">→</span>
             </a>
         </article>
