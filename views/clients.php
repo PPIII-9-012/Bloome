@@ -1,3 +1,7 @@
+<header class="page-heading clients-page-heading">
+    <div><h1>Clientes</h1><p>Consultá, buscá y administrá la información de tus clientes.</p></div>
+</header>
+
 <!-- FIGMA ACTION BAR (05-clientes.png) -->
 <div class="figma-action-bar">
     <?php if (canEdit($user)): ?>

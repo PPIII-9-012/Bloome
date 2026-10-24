@@ -4,7 +4,7 @@ $sessionParam=$cashView&&!$isCurrent?['session'=>$cashView['id']]:[];
 $pageUrl=fn(int $n)=>url('caja',$sessionParam+$active+['p'=>$n]);
 $fmt=fn(string $d)=>(new DateTimeImmutable($d))->format('d/m/Y H:i');
 ?>
-<h1 class="ph-title mb-20">Caja</h1>
+<header class="page-heading cash-page-heading"><div><h1>Caja</h1><p>Consultá el estado de la caja, los movimientos y los medios de pago.</p></div></header>
 <div class="figma-action-bar">
 <?php if($open): ?>
 <a class="figma-action-btn" href="<?= e(url('caja-movement',['kind'=>'expense'])) ?>"><span>Registrar gasto</span></a>

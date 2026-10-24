@@ -339,3 +339,43 @@
 @media (max-width: 650px) {
     .config-page-header { flex-direction: column; align-items: flex-start; }
 }
+
+
+/* Shared page-heading system: consistent typography, rhythm and alignment across main sections. */
+.page-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px 24px;
+    margin: 0 0 24px;
+    padding: 0;
+}
+.page-heading h1,
+.employee-heading h1,
+.config-page-header h1,
+.figma-main > h1.ph-title {
+    margin: 0 0 6px;
+    color: var(--text-primary, #26332f);
+    font-family: inherit;
+    font-size: clamp(25px, 2vw, 28px);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.45px;
+}
+.page-heading p,
+.employee-heading p,
+.config-page-header p {
+    margin: 0;
+    color: var(--text-muted, #68756f);
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.55;
+}
+.employee-heading { margin: 0 0 24px; }
+.config-page { max-width: none; width: 100%; margin: 0; padding: 0 0 2rem; gap: 1.5rem; box-sizing: border-box; }
+.config-page-header { margin: 0 0 0; }
+.clients-page-heading, .cash-page-heading { width: 100%; }
+@media (max-width: 650px) {
+    .page-heading { margin-bottom: 20px; }
+    .page-heading h1, .employee-heading h1, .config-page-header h1, .figma-main > h1.ph-title { font-size: 25px; }
+}
