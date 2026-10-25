@@ -11,10 +11,14 @@ if (!(Test-Path -LiteralPath $phpExe) -or !(Test-Path -LiteralPath $mysqlData) -
 
 function Test-ProjectProcess([string] $PidFile, [string] $ExpectedExe) {
     if (!(Test-Path -LiteralPath $PidFile)) { return $false }
-    $taskPid = [int](Get-Content -LiteralPath $PidFile -Raw).Trim()
-    $taskProcess = Get-Process -Id $taskPid -ErrorAction SilentlyContinue
-    if (!$taskProcess) { return $false }
-    return $taskProcess.Path -and ($taskProcess.Path.Replace('\','/') -eq $ExpectedExe.Replace('\','/'))
+    try {
+        $taskPid = [int](Get-Content -LiteralPath $PidFile -Raw).Trim()
+        $taskProcess = Get-Process -Id $taskPid -ErrorAction Stop
+        if (!$taskProcess) { return $false }
+        return $taskProcess.Path -and ($taskProcess.Path.Replace('\','/') -eq $ExpectedExe.Replace('\','/'))
+    } catch {
+        return $false
+    }
 }
 
 $mysqlPidFile = Join-Path $projectRoot '.tools/mysql.pid'

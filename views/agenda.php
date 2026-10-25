@@ -1,59 +1,59 @@
-<!-- FIGMA ACTION BAR (14-agenda.png) -->
-<div class="figma-action-bar">
-    <button type="button" class="figma-action-btn" onclick="alert('La creación de citas se implementará en la próxima etapa.');">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        <span>Nueva Cita</span>
-    </button>
-    <button type="button" class="figma-action-btn" onclick="alert('El registro de ventas se implementará en la próxima etapa.');">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polygon points="12 6 13.8 9.8 18 10.4 15 13.3 15.7 17.5 12 15.5 8.3 17.5 9 13.3 6 10.4 10.2 9.8 12 6"/></svg>
-        <span>Nueva Venta</span>
-    </button>
-    <button type="button" class="figma-action-btn" onclick="window.print();">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-        <span>Imprimir</span>
-    </button>
-    <button type="button" class="figma-action-btn" onclick="alert('Exportación de agenda planificada para la próxima entrega.');">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        <span>Exportar</span>
-    </button>
+<?php
+$viewNames=['day'=>'Día','week'=>'Semana','month'=>'Mes'];
+$filters=['mode'=>$mode,'employee'=>$employeeFilter,'status'=>$statusFilter];
+$byDay=[];
+foreach ($appointments as $appointment) $byDay[substr($appointment['starts_at'],0,10)][]=$appointment;
+$first=new DateTimeImmutable($period['from']);
+$until=new DateTimeImmutable($period['until']);
+$weekdays=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+?>
+<div class="page-heading employee-heading"><h1>Agenda</h1><p>Turnos del <?= e($first->format('d/m/Y')) ?> al <?= e($until->modify('-1 day')->format('d/m/Y')) ?> · <?= count($appointments) ?> resultados</p></div>
+<?php if(!$filterError): ?><p class="agenda-output-links"><a href="<?= e(url('agenda-print',$filters+['date'=>$date])) ?>">Vista para imprimir</a> · <a href="<?= e(url('agenda-export',$filters+['date'=>$date])) ?>">Exportar CSV</a></p><?php endif; ?>
+<div class="agenda-toolbar">
+<nav class="agenda-view-switch" aria-label="Tipo de vista del calendario">
+<?php foreach($viewNames as $value=>$label): ?><a class="agenda-view-option<?= $mode===$value?' is-active':'' ?>" href="<?= e(url('agenda',array_replace($filters,['date'=>$date,'mode'=>$value]))) ?>" <?= $mode===$value?'aria-current="page"':'' ?>><?= e($label) ?></a><?php endforeach; ?>
+</nav>
+<div class="figma-filters-card agenda-toolbar-filters">
+<form method="get" class="agenda-controls">
+<input type="hidden" name="page" value="agenda"><input type="hidden" name="mode" value="<?= e($mode) ?>">
+<label class="agenda-date-filter">Fecha<input type="date" name="date" value="<?= e($date) ?>" required></label>
+<label>Profesional<select name="employee"><option value="">Todos</option><?php foreach($employees as $employee): ?><option value="<?= (int)$employee['id'] ?>" <?= $employeeFilter===(string)$employee['id']?'selected':'' ?>><?= e($employee['name']) ?><?= !$employee['active'] || !$employee['user_active']?' (inactivo)':'' ?></option><?php endforeach; ?></select></label>
+<label>Estado<select name="status"><option value="">Todos</option><?php foreach(appointmentStatuses() as $value=>$label): ?><option value="<?= e($value) ?>" <?= $statusFilter===$value?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?></select></label>
+<button type="submit" class="btn-pill-action">Aplicar</button><a class="agenda-clear-filters" href="<?= e(url('agenda',['date'=>$date,'mode'=>$mode])) ?>">Limpiar</a>
+</form>
 </div>
-
-<!-- FIGMA INCOME PILLS (14-agenda.png) -->
-<div class="figma-income-grid">
-    <div class="income-pill-card green">
-        <span class="income-pill-title">Ingresos Realizados</span>
-        <span class="income-pill-value">$ 0,00</span>
-    </div>
-    <div class="income-pill-card orange">
-        <span class="income-pill-title">Ingresos Pendientes</span>
-        <span class="income-pill-value">$ 0,00</span>
-    </div>
+<?php if (canEdit($user)): ?><a class="figma-action-btn agenda-new-appointment" href="<?= e(url('appointment-new',$filters+['date'=>$date])) ?>">+ Nuevo turno</a><?php endif; ?>
 </div>
-
-<!-- FIGMA FILTERS CARD (14-agenda.png) -->
-<div class="figma-filters-card">
-    <div class="filter-pills-row">
-        <button type="button" class="filter-pill" onclick="alert('Filtro por categorías en desarrollo.');">Categorías ▼</button>
-        <button type="button" class="filter-pill" onclick="alert('Filtro por empleados en desarrollo.');">Empleados ▼</button>
-        <button type="button" class="filter-pill" onclick="alert('Filtro por estados en desarrollo.');">Estados ▼</button>
-    </div>
-
-    <form method="get" class="agenda-date-controls">
-        <input type="hidden" name="page" value="agenda">
-        <input id="date" type="date" name="date" value="<?= e($date) ?>" required class="agenda-date-input" aria-label="Fecha de agenda">
-        <button type="submit" class="btn-pill-action">Ver fecha</button>
-        <a href="<?= e(url('agenda')) ?>" class="btn-pill-action">Hoy</a>
-    </form>
+<nav class="agenda-navigation" aria-label="Navegación del calendario">
+<a class="btn-pill-action" href="<?= e(url('agenda',$filters+['date'=>$period['previous']])) ?>">Anterior</a>
+<a class="btn-pill-action" href="<?= e(url('agenda',$filters+['date'=>date('Y-m-d')])) ?>">Hoy</a>
+<a class="btn-pill-action" href="<?= e(url('agenda',$filters+['date'=>$period['next']])) ?>">Siguiente</a>
+</nav>
+<?php if($filterError): ?>
+<p role="alert">Los filtros no son válidos. Seleccioná un empleado y un estado de la lista y aplicalos nuevamente.</p>
+<?php else: ?>
+<?php if(!$appointments): ?><p role="status">No hay turnos para este período y estos filtros.</p><?php endif; ?>
+<div class="agenda-calendar agenda-<?= e($mode) ?>">
+<?php if($mode==='month'): ?>
+<?php foreach($weekdays as $weekday): ?><div class="agenda-weekday" aria-hidden="true"><?= e($weekday) ?></div><?php endforeach; ?>
+<?php for($i=1;$i<(int)$first->format('N');$i++): ?><div class="agenda-padding" aria-hidden="true"></div><?php endfor; ?>
+<?php endif; ?>
+<?php for($day=$first;$day<$until;$day=$day->modify('+1 day')): $key=$day->format('Y-m-d'); ?>
+<section class="agenda-day-card<?= $key===date('Y-m-d')?' agenda-today':'' ?>" aria-label="<?= e($day->format('d/m/Y')) ?>">
+<h2><a href="<?= e(url('agenda',array_replace($filters,['date'=>$key,'mode'=>'day']))) ?>"<?= $key===date('Y-m-d')?' aria-current="date"':'' ?>><?= e($day->format('j')) ?></a></h2>
+<?php if(empty($byDay[$key])): ?><p class="schedule-hint">Sin turnos<?= $employeeFilter!=='' || $statusFilter!==''?' con estos filtros':'' ?></p><?php endif; ?>
+<?php foreach($byDay[$key]??[] as $appointment): ?>
+<article class="agenda-appointment" data-appointment-color="<?= e(employeeColor($appointment['appointment_color']??null)) ?>">
+<strong><?= e(substr($appointment['starts_at'],11,5).'–'.substr($appointment['ends_at'],11,5)) ?></strong>
+<p><a href="<?= e(url('client',['id'=>$appointment['client_id']])) ?>"><?= e($appointment['first_name'].' '.$appointment['last_name']) ?></a></p>
+<p><?= e($appointment['service_name']) ?></p>
+<p><?= employeeSwatch($appointment['appointment_color']??null) ?> <?= e($appointment['employee_name']) ?></p>
+<span class="badge <?= e($appointment['status']) ?>"><?= e(appointmentStatuses()[$appointment['status']]) ?></span>
+<?php if(canEdit($user)): ?><a class="agenda-edit" href="<?= e(url('appointment-edit',['id'=>$appointment['id'],'date'=>$date]+$filters)) ?>">Editar turno</a><?php endif; ?>
+<?php if(canEdit($user)): if(isset($saleByAppointment[(int)$appointment['id']])): ?><a class="agenda-edit" href="<?= e(url('sale',['id'=>$saleByAppointment[(int)$appointment['id']]])) ?>">Ver venta</a><?php elseif(!in_array($appointment['status'],['cancelled','missed'],true)): ?><a class="agenda-edit" href="<?= e(url('sale-new',['appointment'=>$appointment['id']])) ?>">Vender</a><?php endif; endif; ?>
+</article>
+<?php endforeach; ?>
+</section>
+<?php endfor; ?>
 </div>
-
-<!-- VIEW SEGMENT CONTROL: DÍA / SEMANA / MES -->
-<div class="view-segment-control">
-    <button type="button" class="view-segment-btn active">Día</button>
-    <button type="button" class="view-segment-btn" onclick="alert('Vista semanal en desarrollo.');">Semana</button>
-    <button type="button" class="view-segment-btn" onclick="alert('Vista mensual en desarrollo.');">Mes</button>
-</div>
-
-<!-- APPOINTMENTS TABLE -->
-<div class="figma-table-card">
-    <?php require ROOT . '/views/appointment-list.php'; ?>
-</div>
+<?php endif; ?>
