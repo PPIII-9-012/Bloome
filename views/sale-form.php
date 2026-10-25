@@ -14,7 +14,7 @@ $formUrl=url('sale-new',$appointment?['appointment'=>$appointment['id']]:[]);
 <div class="field"><label for="employee_id">Empleado</label><select id="employee_id" name="employee_id"><option value="">Sin asignar</option><?php foreach($employees as $employee): ?><option value="<?= e($employee['id']) ?>" <?= (string)$employee['id']===$formData['employee_id']?'selected':'' ?>><?= e($employee['name']) ?></option><?php endforeach; ?></select></div>
 <div class="field"><label for="sale_date">Fecha</label><input type="text" id="sale_date" value="<?= e(date('d/m/Y')) ?>" readonly aria-describedby="sale-date-help"><small id="sale-date-help" class="muted">Se registra con la fecha de hoy.</small></div>
 </div>
-<fieldset class="appointment-services"><legend>Servicios *</legend>
+<fieldset class="appointment-services"><legend class="sr-only">Servicios *</legend>
 <div class="employee-table-wrap"><table class="figma-table sale-lines">
 <thead><tr><th scope="col">Servicio</th><th scope="col">Cantidad</th><th scope="col">Descuento</th><th scope="col">Valor del descuento</th></tr></thead>
 <tbody>

@@ -1746,3 +1746,60 @@ label { color: #42564c; font-weight: 600; }
     .stats-report-card { gap: 10px; min-height: 145px; padding: 13px; }
     .stats-report-icon { flex-basis: 38px; width: 38px; height: 38px; }
 }
+
+/* Correcciones puntuales de consistencia visual */
+.figma-table .table-action-edit {
+    white-space: nowrap;
+    word-break: keep-all;
+    flex-shrink: 0;
+}
+
+/* El selector Género comparte el mismo aspecto que los demás campos del formulario. */
+.form-card .form-grid .field input,
+.form-card .form-grid .field select,
+.form-card .form-grid .field textarea {
+    background-color: #fff;
+    box-shadow: none;
+}
+.form-card .form-grid .field select#gender {
+    appearance: auto;
+    -webkit-appearance: auto;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    color: var(--text-primary);
+}
+.form-card .form-grid .field select#gender:focus {
+    border-color: var(--teal-dark);
+    outline: 2px solid rgba(14, 61, 62, .12);
+    outline-offset: 1px;
+}
+
+/* El elemento activo de la navegación mantiene contraste y no se pierde sobre el fondo. */
+.figma-sidebar .sidebar-nav-item.active,
+.figma-sidebar .sidebar-nav-item[aria-current="page"] {
+    color: #164e49 !important;
+    background: #dcefe5 !important;
+    box-shadow: inset 4px 0 0 #164e49, 0 1px 3px rgba(22, 78, 73, .08) !important;
+    font-weight: 750;
+}
+.figma-sidebar .sidebar-nav-item.active svg,
+.figma-sidebar .sidebar-nav-item[aria-current="page"] svg {
+    color: #164e49 !important;
+}
+
+/* Centra mejor los iconos del login en su columna, sin desplazar los campos. */
+.login-box .figma-input-group {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    align-items: center;
+    gap: 0;
+}
+.login-box .figma-input-icon {
+    width: 44px;
+    justify-self: center;
+    align-self: center;
+}
+.login-box .figma-text-input {
+    min-width: 0;
+    width: 100%;
+}
