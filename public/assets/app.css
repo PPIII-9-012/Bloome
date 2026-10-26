@@ -1803,3 +1803,40 @@ label { color: #42564c; font-weight: 600; }
     min-width: 0;
     width: 100%;
 }
+
+
+/* Recuperación de contraseña */
+.recovery-box { max-width: 460px; }
+.recovery-title { margin: -14px 0 10px; color: var(--text-primary); font-size: 25px; line-height: 1.25; text-align: center; }
+.recovery-description { margin: 0 0 22px; color: var(--text-secondary); font-size: 14px; line-height: 1.6; text-align: center; }
+.recovery-label { display: block; margin: 0 0 7px; color: var(--text-primary); font-size: 13px; font-weight: 650; }
+.recovery-box .figma-text-input { margin-bottom: 17px; box-sizing: border-box; }
+.recovery-box .figma-btn-acceder { margin-top: 4px; }
+.recovery-back { margin: 8px 0 0; text-align: center; font-size: 13px; }
+.recovery-back a { color: var(--teal-dark); text-decoration: none; }
+.recovery-back a:hover { text-decoration: underline; }
+@media (max-width: 760px) {
+    .recovery-viewport { grid-template-columns: 1fr; }
+    .recovery-viewport .login-hero-pane { display: none; }
+    .recovery-viewport .login-form-pane { min-height: 100vh; padding: 28px 20px; }
+    .recovery-box { padding: 28px 22px; }
+}
+
+/* Password recovery: inline email action and single-screen verification flow. */
+.recovery-email-row { display: flex; align-items: stretch; gap: 10px; }
+.recovery-email-row .figma-text-input { flex: 1 1 0; width: 0; min-width: 0; margin-bottom: 0; }
+.recovery-email-row .figma-btn-acceder { flex: 0 0 auto; width: auto; max-width: max-content; margin: 0; white-space: nowrap; padding-left: 16px; padding-right: 16px; }
+.recovery-box .figma-btn-acceder:disabled,
+.recovery-resend-button:disabled { opacity: .48; cursor: not-allowed; }
+.recovery-field-status { min-height: 18px; margin: 7px 0 16px; color: var(--text-secondary); font-size: 12px; }
+.recovery-field-status.is-valid { color: #21845a; }
+.recovery-field-status.is-invalid { color: #c43e48; }
+.recovery-current-email { margin: 0 0 18px; padding: 11px 13px; border-radius: 10px; background: var(--surface-secondary, rgba(100, 116, 139, .10)); color: var(--text-secondary); font-size: 13px; overflow-wrap: anywhere; }
+.recovery-current-email strong { color: var(--text-primary); }
+.recovery-resend-form { margin-top: 4px; text-align: center; }
+.recovery-resend-button { padding: 7px 10px; border: 0; background: transparent; color: var(--teal-dark); font: inherit; font-size: 12px; cursor: pointer; }
+.recovery-resend-button:not(:disabled):hover { text-decoration: underline; }
+@media (max-width: 480px) {
+    .recovery-email-row { flex-direction: column; }
+    .recovery-email-row .figma-btn-acceder { width: 100%; }
+}

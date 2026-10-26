@@ -141,6 +141,9 @@
 </div>
 <?php else: ?>
 <main id="main">
+    <?php if ($notice): ?>
+        <div class="notice success guest-notice" role="status"><?= e($notice) ?></div>
+    <?php endif; ?>
     <?= $content ?>
 </main>
 <?php endif; ?>
