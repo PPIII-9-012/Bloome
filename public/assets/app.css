@@ -1,5 +1,4 @@
 @charset "UTF-8";
-
 :root {
     --teal-dark: #0e3d3e;
     --teal-hover: #08292a;
@@ -736,7 +735,7 @@ button {
 .login-hero-pane {
     position: relative;
     background-color: #d6cebf;
-    background-image: url('/assets/login-hero.png');
+    background-image: url('/assets/login-hero.webp');
     background-size: cover;
     background-position: center center;
     background-repeat: no-repeat;
@@ -1745,4 +1744,98 @@ label { color: #42564c; font-weight: 600; }
     .stats-report-list { grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 10px; }
     .stats-report-card { gap: 10px; min-height: 145px; padding: 13px; }
     .stats-report-icon { flex-basis: 38px; width: 38px; height: 38px; }
+}
+
+/* Correcciones puntuales de consistencia visual */
+.figma-table .table-action-edit {
+    white-space: nowrap;
+    word-break: keep-all;
+    flex-shrink: 0;
+}
+
+/* El selector Género comparte el mismo aspecto que los demás campos del formulario. */
+.form-card .form-grid .field input,
+.form-card .form-grid .field select,
+.form-card .form-grid .field textarea {
+    background-color: #fff;
+    box-shadow: none;
+}
+.form-card .form-grid .field select#gender {
+    appearance: auto;
+    -webkit-appearance: auto;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    color: var(--text-primary);
+}
+.form-card .form-grid .field select#gender:focus {
+    border-color: var(--teal-dark);
+    outline: 2px solid rgba(14, 61, 62, .12);
+    outline-offset: 1px;
+}
+
+/* El elemento activo de la navegación mantiene contraste y no se pierde sobre el fondo. */
+.figma-sidebar .sidebar-nav-item.active,
+.figma-sidebar .sidebar-nav-item[aria-current="page"] {
+    color: #164e49 !important;
+    background: #dcefe5 !important;
+    box-shadow: inset 4px 0 0 #164e49, 0 1px 3px rgba(22, 78, 73, .08) !important;
+    font-weight: 750;
+}
+.figma-sidebar .sidebar-nav-item.active svg,
+.figma-sidebar .sidebar-nav-item[aria-current="page"] svg {
+    color: #164e49 !important;
+}
+
+/* Centra mejor los iconos del login en su columna, sin desplazar los campos. */
+.login-box .figma-input-group {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    align-items: center;
+    gap: 0;
+}
+.login-box .figma-input-icon {
+    width: 44px;
+    justify-self: center;
+    align-self: center;
+}
+.login-box .figma-text-input {
+    min-width: 0;
+    width: 100%;
+}
+
+
+/* Recuperación de contraseña */
+.recovery-box { max-width: 460px; }
+.recovery-title { margin: -14px 0 10px; color: var(--text-primary); font-size: 25px; line-height: 1.25; text-align: center; }
+.recovery-description { margin: 0 0 22px; color: var(--text-secondary); font-size: 14px; line-height: 1.6; text-align: center; }
+.recovery-label { display: block; margin: 0 0 7px; color: var(--text-primary); font-size: 13px; font-weight: 650; }
+.recovery-box .figma-text-input { margin-bottom: 17px; box-sizing: border-box; }
+.recovery-box .figma-btn-acceder { margin-top: 4px; }
+.recovery-back { margin: 8px 0 0; text-align: center; font-size: 13px; }
+.recovery-back a { color: var(--teal-dark); text-decoration: none; }
+.recovery-back a:hover { text-decoration: underline; }
+@media (max-width: 760px) {
+    .recovery-viewport { grid-template-columns: 1fr; }
+    .recovery-viewport .login-hero-pane { display: none; }
+    .recovery-viewport .login-form-pane { min-height: 100vh; padding: 28px 20px; }
+    .recovery-box { padding: 28px 22px; }
+}
+
+/* Password recovery: inline email action and single-screen verification flow. */
+.recovery-email-row { display: flex; align-items: stretch; gap: 10px; }
+.recovery-email-row .figma-text-input { flex: 1 1 0; width: 0; min-width: 0; margin-bottom: 0; }
+.recovery-email-row .figma-btn-acceder { flex: 0 0 auto; width: auto; max-width: max-content; margin: 0; white-space: nowrap; padding-left: 16px; padding-right: 16px; }
+.recovery-box .figma-btn-acceder:disabled,
+.recovery-resend-button:disabled { opacity: .48; cursor: not-allowed; }
+.recovery-field-status { min-height: 18px; margin: 7px 0 16px; color: var(--text-secondary); font-size: 12px; }
+.recovery-field-status.is-valid { color: #21845a; }
+.recovery-field-status.is-invalid { color: #c43e48; }
+.recovery-current-email { margin: 0 0 18px; padding: 11px 13px; border-radius: 10px; background: var(--surface-secondary, rgba(100, 116, 139, .10)); color: var(--text-secondary); font-size: 13px; overflow-wrap: anywhere; }
+.recovery-current-email strong { color: var(--text-primary); }
+.recovery-resend-form { margin-top: 4px; text-align: center; }
+.recovery-resend-button { padding: 7px 10px; border: 0; background: transparent; color: var(--teal-dark); font: inherit; font-size: 12px; cursor: pointer; }
+.recovery-resend-button:not(:disabled):hover { text-decoration: underline; }
+@media (max-width: 480px) {
+    .recovery-email-row { flex-direction: column; }
+    .recovery-email-row .figma-btn-acceder { width: 100%; }
 }

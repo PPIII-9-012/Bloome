@@ -121,3 +121,12 @@ Gestión administrativa en `/?page=employees`; perfil propio desde el nombre de 
 ## Turnos en desarrollo
 
 Alta, edición y cancelación disponibles para administración/recepción desde la agenda, con varios servicios y control transaccional de solapamientos. Ver [alcance, instalación y pendientes](docs/TURNOS.md). Descansos/jornada partida implementados con un descanso por día; ver [configuración y migración](docs/DESCANSOS.md). Pendiente revisión del equipo; las vistas de semana/mes y filtros de empleado/estado están implementados en el avance de #11; categoría y revisión visual pendientes.
+
+
+## Recuperación de contraseña por correo
+
+La pantalla de acceso incluye el enlace **¿Olvidaste tu contraseña?**. La recuperación envía un código de seis dígitos por SMTP; vence a los 15 minutos, se almacena como hash, se invalida al utilizarse y permite hasta cinco intentos de validación. Se limita la emisión a tres solicitudes por correo o IP durante una hora.
+
+Configurá en tu archivo `.env` las variables `MAIL_HOST`, `MAIL_PORT`, `MAIL_ENCRYPTION`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM` y `MAIL_FROM_NAME`. Para la mayoría de los proveedores, `MAIL_PORT=587` y `MAIL_ENCRYPTION=tls`; utilizá los datos SMTP de tu proveedor y una cuenta autorizada para enviar mensajes. No subas las credenciales reales a Git.
+
+La tabla `password_reset_codes` se crea automáticamente al abrir por primera vez las pantallas de recuperación; también está incluida en `database/schema.sql` para instalaciones nuevas. Si el SMTP no está configurado o el proveedor rechaza el envío, el error queda en el log del servidor y no se muestra información sensible al visitante.

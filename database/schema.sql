@@ -523,3 +523,20 @@ WHERE code IN ('clients.view', 'clients.create', 'clients.edit');
 -- Los profesionales pueden consultar clientes, sin modificarlos.
 INSERT IGNORE INTO role_permissions (role, permission_code)
 VALUES ('professional', 'clients.view');
+
+
+CREATE TABLE IF NOT EXISTS password_reset_codes (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    email_hash CHAR(64) NOT NULL,
+    code_hash VARCHAR(255) NOT NULL,
+    ip_hash CHAR(64) NOT NULL,
+    attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expires_at DATETIME NOT NULL,
+    used_at DATETIME NULL,
+    INDEX reset_email_created (email_hash, created_at),
+    INDEX reset_ip_created (ip_hash, created_at),
+    INDEX reset_user_active (user_id, used_at, expires_at),
+    CONSTRAINT fk_password_reset_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

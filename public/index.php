@@ -8,6 +8,7 @@ require_once ROOT . '/app/services.php';
 require_once ROOT . '/app/employees.php';
 require_once ROOT . '/app/permissions.php';
 require_once ROOT . '/app/audit.php';
+require_once ROOT . '/app/password-recovery.php';
 
 $page = input($_GET, 'page', 'dashboard');
 $method = $_SERVER['REQUEST_METHOD'];
@@ -91,6 +92,138 @@ try {
             compact('email', 'errors', 'page') + ['title' => 'Ingresar']
         );
 
+        exit;
+    }
+
+    if (in_array($page, ['forgot-password', 'reset-password'], true)) {
+        if ($user) redirect('dashboard');
+        // Both legacy URLs now use the same single-screen recovery flow.
+        if ($page === 'reset-password') redirect('forgot-password');
+
+        ensurePasswordRecoveryTable();
+        $email = strtolower(substr(input($_POST, 'email'), 0, 190));
+        $code = preg_replace('/\D+/', '', input($_POST, 'code')) ?? '';
+        $errors = [];
+        $notice = '';
+        $action = input($_POST, 'recovery_action');
+        $recoveryStep = (string) ($_SESSION['recovery_step'] ?? 'email');
+        $cooldownUntil = (int) ($_SESSION['recovery_cooldown_until'] ?? 0);
+
+        if ($method === 'POST' && $page === 'forgot-password') {
+            if ($action === 'send_code') {
+                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $errors['email'] = 'Ingresá un correo con un formato válido.';
+                } elseif (time() < $cooldownUntil) {
+                    $errors['general'] = 'Esperá a que termine el temporizador para solicitar otro código.';
+                    $recoveryStep = 'code';
+                    $email = (string) ($_SESSION['recovery_email'] ?? $email);
+                } else {
+                    $_SESSION['recovery_email'] = $email;
+                    $_SESSION['recovery_step'] = 'code';
+                    $_SESSION['recovery_cooldown_until'] = time() + 60;
+                    unset($_SESSION['recovery_verified_code_id'], $_SESSION['recovery_verified_user_id']);
+                    $recoveryStep = 'code';
+                    $cooldownUntil = (int) $_SESSION['recovery_cooldown_until'];
+                    $emailHash = hash('sha256', $email);
+                    $ipHash = recoveryIpHash();
+                    $rateCount = (int) query(
+                        'SELECT COUNT(*) FROM password_reset_codes WHERE (email_hash = ? OR ip_hash = ?) AND created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)',
+                        [$emailHash, $ipHash]
+                    )->fetchColumn();
+                    if ($rateCount < 3) {
+                        $account = query('SELECT id, email FROM users WHERE email = ? AND active = 1', [$email])->fetch();
+                        if ($account) {
+                            $codeToSend = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+                            query('UPDATE password_reset_codes SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL', [(int) $account['id']]);
+                            query(
+                                'INSERT INTO password_reset_codes (user_id, email_hash, code_hash, ip_hash, expires_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 15 MINUTE))',
+                                [(int) $account['id'], $emailHash, password_hash($codeToSend, PASSWORD_DEFAULT), $ipHash]
+                            );
+                            try {
+                                sendRecoveryCodeEmail($account['email'], $codeToSend);
+                            } catch (Throwable $mailError) {
+                                query('UPDATE password_reset_codes SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL', [(int) $account['id']]);
+                                error_log('Bloome password recovery email failed: ' . $mailError->getMessage());
+                                $errors['general'] = 'No pudimos enviar el correo. Revisá la configuración del servicio e intentá más tarde.';
+                            }
+                        }
+                    }
+                    if (!$errors) $notice = 'Si el correo corresponde a una cuenta activa, recibirás un código. Revisá también la carpeta de spam.';
+                }
+            } elseif ($action === 'verify_code') {
+                $email = (string) ($_SESSION['recovery_email'] ?? '');
+                $recoveryStep = 'code';
+                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $errors['general'] = 'Primero ingresá tu correo y solicitá un código.';
+                    $recoveryStep = 'email';
+                } elseif (!preg_match('/^\d{6}$/', $code)) {
+                    $errors['general'] = 'Ingresá el código de seis dígitos que recibiste por correo.';
+                } else {
+                    $emailHash = hash('sha256', $email);
+                    $record = query(
+                        'SELECT prc.*, u.id AS account_id FROM password_reset_codes prc JOIN users u ON u.id = prc.user_id WHERE prc.email_hash = ? AND u.email = ? AND u.active = 1 AND prc.used_at IS NULL AND prc.expires_at > NOW() ORDER BY prc.id DESC LIMIT 1',
+                        [$emailHash, $email]
+                    )->fetch();
+                    if (!$record || (int) $record['attempts'] >= 5 || !password_verify($code, (string) ($record['code_hash'] ?? ''))) {
+                        if ($record && (int) $record['attempts'] < 5) query('UPDATE password_reset_codes SET attempts = attempts + 1 WHERE id = ?', [(int) $record['id']]);
+                        $errors['general'] = 'El código no es válido o venció. Revisalo e intentá otra vez, o solicitá uno nuevo cuando termine el temporizador.';
+                    } else {
+                        $_SESSION['recovery_verified_code_id'] = (int) $record['id'];
+                        $_SESSION['recovery_verified_user_id'] = (int) $record['account_id'];
+                        $_SESSION['recovery_step'] = 'password';
+                        $recoveryStep = 'password';
+                        $notice = 'Código verificado. Ahora elegí tu nueva contraseña.';
+                    }
+                }
+            } elseif ($action === 'reset_password') {
+                $email = (string) ($_SESSION['recovery_email'] ?? '');
+                $recoveryStep = 'password';
+                $password = isset($_POST['password']) && is_string($_POST['password']) ? $_POST['password'] : '';
+                $passwordConfirm = isset($_POST['password_confirm']) && is_string($_POST['password_confirm']) ? $_POST['password_confirm'] : '';
+                $verifiedCodeId = (int) ($_SESSION['recovery_verified_code_id'] ?? 0);
+                $verifiedUserId = (int) ($_SESSION['recovery_verified_user_id'] ?? 0);
+                if (!filter_var($email, FILTER_VALIDATE_EMAIL) || $verifiedCodeId < 1 || $verifiedUserId < 1) {
+                    $errors['general'] = 'Verificá primero el código que recibiste por correo.';
+                    $recoveryStep = 'code';
+                }
+                if (strlen($password) < 12 || strlen($password) > 72) $errors['password'] = 'La contraseña debe tener entre 12 y 72 bytes.';
+                if (!hash_equals($password, $passwordConfirm)) $errors['password_confirm'] = 'Las contraseñas no coinciden.';
+
+                if (!$errors) {
+                    $record = query(
+                        'SELECT id FROM password_reset_codes WHERE id = ? AND user_id = ? AND used_at IS NULL AND expires_at > NOW() AND attempts < 5',
+                        [$verifiedCodeId, $verifiedUserId]
+                    )->fetch();
+                    if (!$record) {
+                        unset($_SESSION['recovery_verified_code_id'], $_SESSION['recovery_verified_user_id']);
+                        $_SESSION['recovery_step'] = 'code';
+                        $recoveryStep = 'code';
+                        $errors['general'] = 'El código venció o ya no es válido. Solicitá uno nuevo.';
+                    } else {
+                        db()->beginTransaction();
+                        try {
+                            query('UPDATE users SET password_hash = ? WHERE id = ? AND active = 1', [password_hash($password, PASSWORD_DEFAULT), $verifiedUserId]);
+                            query('UPDATE password_reset_codes SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL', [$verifiedUserId]);
+                            query('DELETE FROM login_attempts WHERE identity_hash = ?', [hash('sha256', $email)]);
+                            db()->commit();
+                        } catch (Throwable $saveError) {
+                            if (db()->inTransaction()) db()->rollBack();
+                            throw $saveError;
+                        }
+                        unset($_SESSION['recovery_email'], $_SESSION['recovery_step'], $_SESSION['recovery_cooldown_until'], $_SESSION['recovery_verified_code_id'], $_SESSION['recovery_verified_user_id']);
+                        flash('La contraseña se restableció. Ya podés ingresar con la nueva contraseña.');
+                        redirect('login');
+                    }
+                }
+            }
+        }
+
+        // Keep the current stage and cooldown after a refresh or validation error.
+        $recoveryStep = (string) ($_SESSION['recovery_step'] ?? $recoveryStep);
+        if ($recoveryStep !== 'password' && $recoveryStep !== 'code') $recoveryStep = 'email';
+        if ($recoveryStep !== 'email') $email = (string) ($_SESSION['recovery_email'] ?? $email);
+        $cooldownUntil = (int) ($_SESSION['recovery_cooldown_until'] ?? 0);
+        render('forgot-password', compact('user', 'page', 'email', 'code', 'errors', 'notice', 'recoveryStep', 'cooldownUntil') + ['title' => 'Recuperar contraseña']);
         exit;
     }
 

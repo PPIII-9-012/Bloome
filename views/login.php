@@ -3,7 +3,7 @@
     <div class="login-form-pane">
         <div class="login-box">
             <div class="login-logo-header">
-                <img src="/assets/bloome-logo.png" alt="BLOOME Estética Integral" class="login-logo-img">
+                <img src="/assets/bloome-logo.webp" alt="BLOOME Estética Integral" class="login-logo-img">
             </div>
 
             <?php if ($errors): ?>
@@ -33,7 +33,7 @@
                 <button class="figma-btn-acceder" type="submit">ACCEDER</button>
 
                 <div class="login-forgot-wrap">
-                    <span class="login-forgot-link">¿Olvidaste tu contraseña? Pedile al administrador del centro que la restablezca.</span>
+                    <a class="login-forgot-link" href="<?= e(url('forgot-password')) ?>">¿Olvidaste tu contraseña?</a>
                 </div>
             </form>
         </div>
