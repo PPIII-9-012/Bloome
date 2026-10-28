@@ -1,5 +1,4 @@
 @charset "UTF-8";
-
 :root {
     --teal-dark: #0e3d3e;
     --teal-hover: #08292a;
@@ -736,7 +735,7 @@ button {
 .login-hero-pane {
     position: relative;
     background-color: #d6cebf;
-    background-image: url('/assets/login-hero.png');
+    background-image: url('/assets/login-hero.webp');
     background-size: cover;
     background-position: center center;
     background-repeat: no-repeat;

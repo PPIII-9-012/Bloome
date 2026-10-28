@@ -29,7 +29,7 @@
         </div>
         <div class="topbar-divider" aria-hidden="true"></div>
         <a class="topbar-brand" href="<?= e(url('dashboard')) ?>" title="Bloome Estética Integral">
-            <img src="/assets/bloome-logo.png" alt="BLOOME Estética Integral" class="topbar-logo-img">
+            <img src="/assets/bloome-logo.webp" alt="BLOOME Estética Integral" class="topbar-logo-img">
         </a>
     </div>
 
@@ -119,7 +119,7 @@
     </nav>
 
     <div class="sidebar-footer">
-        <img src="/assets/sidebar-leaf.png" alt="Bloome Botanical" class="sidebar-leaf-img">
+        <img src="/assets/sidebar-leaf.webp" alt="Bloome Botanical" class="sidebar-leaf-img">
     </div>
 </aside>
 
